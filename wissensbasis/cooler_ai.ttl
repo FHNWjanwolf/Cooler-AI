@@ -1,0 +1,234 @@
+# Wissensbasis von Cooler AI (OWL-Ontologie im Turtle-Format)
+#
+# Aufbau:
+#   - Jede Zutat und jede Kategorie ist eine OWL-Klasse.
+#     Die Hierarchie entsteht über rdfs:subClassOf (Cherrytomate -> Tomate -> Gemuese -> Zutat).
+#   - Klassen ohne Unterklassen ("Blätter") sind konkrete Zutaten, die man im Vorrat erfassen kann.
+#   - Eigenschaften (Einheit, Haltbarkeit, Grundstock, vegetarisch) werden VERERBT:
+#     Fehlt ein Wert bei der Zutat, gilt der Wert der nächsten Oberkategorie.
+#   - Ersatzregeln sind Individuen der Klasse :Ersatzregel.
+#
+# Pflege: siehe docs/wissensbasis.md. Nach jeder Änderung `pytest` laufen lassen.
+
+@prefix :     <http://example.org/cooler-ai#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.org/cooler-ai> a owl:Ontology ;
+    rdfs:comment "Zutaten, Kategorien, Haltbarkeiten und Ersatzregeln für Cooler AI."@de .
+
+# ------------------------------------------------------------------ Eigenschaften
+# Annotation Properties, damit die Ontologie OWL 2 DL bleibt (Werte direkt an Klassen).
+
+:einheit a owl:AnnotationProperty ;
+    rdfs:comment "Standardeinheit beim Erfassen: g, ml oder Stück."@de .
+
+:haltbarTage a owl:AnnotationProperty ;
+    rdfs:comment "Übliche Haltbarkeit ungeöffnet in Tagen (ab Einkauf)."@de .
+
+:haltbarOffenTage a owl:AnnotationProperty ;
+    rdfs:comment "Haltbarkeit nach dem Öffnen in Tagen."@de .
+
+:grundstock a owl:AnnotationProperty ;
+    rdfs:comment "true = gilt als immer vorhanden und wird nicht erfasst (Salz, Öl, Gewürze)."@de .
+
+:vegetarisch a owl:AnnotationProperty ;
+    rdfs:comment "false bei Fleisch und Fisch. Wird an alle Unterklassen vererbt."@de .
+
+:original a owl:AnnotationProperty ;
+    rdfs:comment "Ersatzregel: Zutat (oder Kategorie), die ersetzt wird."@de .
+
+:ersatz a owl:AnnotationProperty ;
+    rdfs:comment "Ersatzregel: Zutat (oder Kategorie), die stattdessen verwendet werden kann."@de .
+
+:begruendung a owl:AnnotationProperty ;
+    rdfs:comment "Ersatzregel: kurze Erklärung, die in der App angezeigt wird."@de .
+
+# ------------------------------------------------------------------ Wurzel
+
+:Zutat a owl:Class ; rdfs:label "Zutat"@de ;
+    :vegetarisch true .
+
+# ------------------------------------------------------------------ Gemüse und Obst
+
+:Gemuese a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Gemüse"@de ;
+    :einheit "g" .
+
+:Tomate a owl:Class ; rdfs:subClassOf :Gemuese ; rdfs:label "Tomate"@de ;
+    :haltbarTage 7 .
+:Cherrytomate a owl:Class ; rdfs:subClassOf :Tomate ; rdfs:label "Cherrytomaten"@de .
+:Rispentomate a owl:Class ; rdfs:subClassOf :Tomate ; rdfs:label "Rispentomaten"@de .
+
+:Pelati a owl:Class ; rdfs:subClassOf :Gemuese ; rdfs:label "Pelati (Dose)"@de ;
+    :haltbarTage 730 ; :haltbarOffenTage 3 .
+:Karotte a owl:Class ; rdfs:subClassOf :Gemuese ; rdfs:label "Karotten"@de ;
+    :haltbarTage 14 .
+:Zwiebel a owl:Class ; rdfs:subClassOf :Gemuese ; rdfs:label "Zwiebeln"@de ;
+    :haltbarTage 30 .
+:Knoblauch a owl:Class ; rdfs:subClassOf :Gemuese ; rdfs:label "Knoblauch"@de ;
+    :haltbarTage 60 .
+:Lauch a owl:Class ; rdfs:subClassOf :Gemuese ; rdfs:label "Lauch"@de ;
+    :haltbarTage 10 .
+:Zucchetti a owl:Class ; rdfs:subClassOf :Gemuese ; rdfs:label "Zucchetti"@de ;
+    :haltbarTage 7 .
+:Peperoni a owl:Class ; rdfs:subClassOf :Gemuese ; rdfs:label "Peperoni"@de ;
+    :haltbarTage 10 .
+:Brokkoli a owl:Class ; rdfs:subClassOf :Gemuese ; rdfs:label "Brokkoli"@de ;
+    :haltbarTage 5 .
+:Spinat a owl:Class ; rdfs:subClassOf :Gemuese ; rdfs:label "Spinat"@de ;
+    :haltbarTage 3 .
+:Champignons a owl:Class ; rdfs:subClassOf :Gemuese ; rdfs:label "Champignons"@de ;
+    :haltbarTage 5 .
+:Kartoffel a owl:Class ; rdfs:subClassOf :Gemuese ; rdfs:label "Kartoffeln"@de ;
+    :haltbarTage 30 .
+
+:Obst a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Obst"@de ;
+    :einheit "Stück" .
+:Apfel a owl:Class ; rdfs:subClassOf :Obst ; rdfs:label "Äpfel"@de ;
+    :haltbarTage 30 .
+:Banane a owl:Class ; rdfs:subClassOf :Obst ; rdfs:label "Bananen"@de ;
+    :haltbarTage 6 .
+:Zitrone a owl:Class ; rdfs:subClassOf :Obst ; rdfs:label "Zitronen"@de ;
+    :haltbarTage 21 .
+
+# ------------------------------------------------------------------ Milchprodukte und Eier
+
+:Milchprodukt a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Milchprodukt"@de .
+
+:Rahm a owl:Class ; rdfs:subClassOf :Milchprodukt ; rdfs:label "Rahm"@de ;
+    :einheit "ml" ; :haltbarTage 21 ; :haltbarOffenTage 4 .
+:Vollrahm a owl:Class ; rdfs:subClassOf :Rahm ; rdfs:label "Vollrahm"@de .
+:Halbrahm a owl:Class ; rdfs:subClassOf :Rahm ; rdfs:label "Halbrahm"@de .
+:Kochrahm a owl:Class ; rdfs:subClassOf :Rahm ; rdfs:label "Kochrahm"@de ;
+    :haltbarTage 30 .
+
+:CremeFraiche a owl:Class ; rdfs:subClassOf :Milchprodukt ; rdfs:label "Crème fraîche"@de ;
+    :einheit "g" ; :haltbarTage 21 ; :haltbarOffenTage 5 .
+:Joghurt a owl:Class ; rdfs:subClassOf :Milchprodukt ; rdfs:label "Joghurt nature"@de ;
+    :einheit "g" ; :haltbarTage 21 ; :haltbarOffenTage 5 .
+:Milch a owl:Class ; rdfs:subClassOf :Milchprodukt ; rdfs:label "Milch"@de ;
+    :einheit "ml" ; :haltbarTage 7 ; :haltbarOffenTage 4 .
+:Butter a owl:Class ; rdfs:subClassOf :Milchprodukt ; rdfs:label "Butter"@de ;
+    :einheit "g" ; :haltbarTage 30 ; :haltbarOffenTage 14 .
+
+:Kaese a owl:Class ; rdfs:subClassOf :Milchprodukt ; rdfs:label "Käse"@de ;
+    :einheit "g" .
+:Hartkaese a owl:Class ; rdfs:subClassOf :Kaese ; rdfs:label "Hartkäse"@de ;
+    :haltbarTage 60 ; :haltbarOffenTage 21 .
+:Parmesan a owl:Class ; rdfs:subClassOf :Hartkaese ; rdfs:label "Parmesan"@de .
+:Sbrinz a owl:Class ; rdfs:subClassOf :Hartkaese ; rdfs:label "Sbrinz"@de .
+:Gruyere a owl:Class ; rdfs:subClassOf :Hartkaese ; rdfs:label "Gruyère"@de .
+:Mozzarella a owl:Class ; rdfs:subClassOf :Kaese ; rdfs:label "Mozzarella"@de ;
+    :haltbarTage 14 ; :haltbarOffenTage 2 .
+:Feta a owl:Class ; rdfs:subClassOf :Kaese ; rdfs:label "Feta"@de ;
+    :haltbarTage 30 ; :haltbarOffenTage 5 .
+
+:Ei a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Eier"@de ;
+    :einheit "Stück" ; :haltbarTage 28 .
+
+# ------------------------------------------------------------------ Getreide und Hülsenfrüchte
+
+:Getreideprodukt a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Getreideprodukt"@de ;
+    :einheit "g" ; :haltbarTage 365 .
+
+:Teigwaren a owl:Class ; rdfs:subClassOf :Getreideprodukt ; rdfs:label "Teigwaren"@de .
+:Spaghetti a owl:Class ; rdfs:subClassOf :Teigwaren ; rdfs:label "Spaghetti"@de .
+:Penne a owl:Class ; rdfs:subClassOf :Teigwaren ; rdfs:label "Penne"@de .
+:Hoernli a owl:Class ; rdfs:subClassOf :Teigwaren ; rdfs:label "Hörnli"@de .
+
+:Reis a owl:Class ; rdfs:subClassOf :Getreideprodukt ; rdfs:label "Reis"@de .
+:Couscous a owl:Class ; rdfs:subClassOf :Getreideprodukt ; rdfs:label "Couscous"@de .
+:Brot a owl:Class ; rdfs:subClassOf :Getreideprodukt ; rdfs:label "Brot"@de ;
+    :haltbarTage 4 .
+
+:Huelsenfrucht a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Hülsenfrucht"@de ;
+    :einheit "g" ; :haltbarTage 365 .
+:Linsen a owl:Class ; rdfs:subClassOf :Huelsenfrucht ; rdfs:label "Linsen"@de .
+:Kichererbsen a owl:Class ; rdfs:subClassOf :Huelsenfrucht ; rdfs:label "Kichererbsen (Dose)"@de ;
+    :haltbarTage 730 ; :haltbarOffenTage 3 .
+
+# ------------------------------------------------------------------ Fleisch und Fisch
+
+:Fleisch a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Fleisch"@de ;
+    :einheit "g" ; :vegetarisch false .
+:Poulet a owl:Class ; rdfs:subClassOf :Fleisch ; rdfs:label "Poulet"@de ;
+    :haltbarTage 3 .
+:Hackfleisch a owl:Class ; rdfs:subClassOf :Fleisch ; rdfs:label "Hackfleisch"@de ;
+    :haltbarTage 2 .
+:Speck a owl:Class ; rdfs:subClassOf :Fleisch ; rdfs:label "Speckwürfel"@de ;
+    :haltbarTage 14 ; :haltbarOffenTage 5 .
+:Schinken a owl:Class ; rdfs:subClassOf :Fleisch ; rdfs:label "Schinken"@de ;
+    :haltbarTage 14 ; :haltbarOffenTage 4 .
+
+:Fisch a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Fisch"@de ;
+    :einheit "g" ; :vegetarisch false .
+:Lachs a owl:Class ; rdfs:subClassOf :Fisch ; rdfs:label "Lachs"@de ;
+    :haltbarTage 3 .
+:Thon a owl:Class ; rdfs:subClassOf :Fisch ; rdfs:label "Thon (Dose)"@de ;
+    :haltbarTage 730 ; :haltbarOffenTage 2 .
+
+# ------------------------------------------------------------------ Grundstock (immer vorhanden)
+
+:Oel a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Öl"@de ;
+    :grundstock true .
+:Olivenoel a owl:Class ; rdfs:subClassOf :Oel ; rdfs:label "Olivenöl"@de .
+:Rapsoel a owl:Class ; rdfs:subClassOf :Oel ; rdfs:label "Rapsöl"@de .
+
+:Gewuerz a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Gewürz"@de ;
+    :grundstock true .
+:Salz a owl:Class ; rdfs:subClassOf :Gewuerz ; rdfs:label "Salz"@de .
+:Pfeffer a owl:Class ; rdfs:subClassOf :Gewuerz ; rdfs:label "Pfeffer"@de .
+:Currypulver a owl:Class ; rdfs:subClassOf :Gewuerz ; rdfs:label "Currypulver"@de .
+:Bouillon a owl:Class ; rdfs:subClassOf :Gewuerz ; rdfs:label "Bouillon"@de .
+
+:Backzutat a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Backzutat"@de ;
+    :grundstock true .
+:Mehl a owl:Class ; rdfs:subClassOf :Backzutat ; rdfs:label "Mehl"@de .
+:Zucker a owl:Class ; rdfs:subClassOf :Backzutat ; rdfs:label "Zucker"@de .
+
+# ------------------------------------------------------------------ Ersatzregeln
+# Lesart: Wenn ein Rezept :original (oder eine Unterklasse davon) braucht,
+# darf stattdessen :ersatz (oder eine Unterklasse davon) aus dem Vorrat verwendet werden.
+
+:Ersatzregel a owl:Class ; rdfs:label "Ersatzregel"@de .
+
+:ersatz_rahm_cremefraiche a owl:NamedIndividual , :Ersatzregel ;
+    :original :Rahm ; :ersatz :CremeFraiche ;
+    :begruendung "Crème fraîche ist ähnlich fett und flockt beim Kochen nicht aus."@de .
+
+:ersatz_cremefraiche_rahm a owl:NamedIndividual , :Ersatzregel ;
+    :original :CremeFraiche ; :ersatz :Rahm ;
+    :begruendung "Rahm etwas einkochen lassen, dann wird er ähnlich sämig."@de .
+
+:ersatz_cremefraiche_joghurt a owl:NamedIndividual , :Ersatzregel ;
+    :original :CremeFraiche ; :ersatz :Joghurt ;
+    :begruendung "Joghurt ist säuerlicher und flockt bei starker Hitze aus: erst am Schluss beigeben."@de .
+
+:ersatz_parmesan_hartkaese a owl:NamedIndividual , :Ersatzregel ;
+    :original :Parmesan ; :ersatz :Hartkaese ;
+    :begruendung "Andere Hartkäse wie Sbrinz oder Gruyère sind ähnlich würzig."@de .
+
+:ersatz_spaghetti_teigwaren a owl:NamedIndividual , :Ersatzregel ;
+    :original :Spaghetti ; :ersatz :Teigwaren ;
+    :begruendung "Andere Teigwaren gehen auch, nur die Kochzeit anpassen."@de .
+
+:ersatz_speck_schinken a owl:NamedIndividual , :Ersatzregel ;
+    :original :Speck ; :ersatz :Schinken ;
+    :begruendung "Schinken würfeln und kurz anbraten, schmeckt etwas weniger rauchig."@de .
+
+:ersatz_pelati_tomate a owl:NamedIndividual , :Ersatzregel ;
+    :original :Pelati ; :ersatz :Tomate ;
+    :begruendung "Frische Tomaten klein schneiden und etwas länger einkochen."@de .
+
+:ersatz_zwiebel_lauch a owl:NamedIndividual , :Ersatzregel ;
+    :original :Zwiebel ; :ersatz :Lauch ;
+    :begruendung "Lauch gibt ein mildes Zwiebelaroma."@de .
+
+:ersatz_butter_oel a owl:NamedIndividual , :Ersatzregel ;
+    :original :Butter ; :ersatz :Oel ;
+    :begruendung "Zum Anbraten geht auch Öl."@de .
+
+:ersatz_milch_rahm a owl:NamedIndividual , :Ersatzregel ;
+    :original :Milch ; :ersatz :Rahm ;
+    :begruendung "Rahm mit etwas Wasser verdünnen."@de .

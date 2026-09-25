@@ -1,52 +1,63 @@
 # Datenmodell
 
+Die Daten liegen an drei Orten, je nach Art:
+
+| Ort | Inhalt | Ändert sich |
+|---|---|---|
+| `wissensbasis/cooler_ai.ttl` (OWL) | Zutaten, Kategorien, Eigenschaften, Ersatzregeln | selten, per Pull Request |
+| `daten/rezepte.json` | Rezepte mit Zutaten | selten, per Pull Request |
+| `cooler_ai.db` (SQLite, lokal) | Vorrat, Bewertungen | laufend, wird nicht eingecheckt |
+
+Verbunden sind sie über die **Zutat-ID** (lokaler Name der OWL-Klasse, z.B. `Cherrytomate`) und die **Rezept-ID** (z.B. `spaghetti_carbonara`).
+
+## Ontologie
+
+```mermaid
+classDiagram
+    Zutat <|-- Gemuese
+    Gemuese <|-- Tomate
+    Tomate <|-- Cherrytomate
+    Zutat <|-- Milchprodukt
+    Milchprodukt <|-- Rahm
+    Rahm <|-- Vollrahm
+    Milchprodukt <|-- CremeFraiche
+    class Zutat {
+        einheit
+        haltbarTage
+        haltbarOffenTage
+        grundstock
+        vegetarisch
+    }
+    class Ersatzregel {
+        original
+        ersatz
+        begruendung
+    }
+```
+
+Ausschnitt; vollständig in `wissensbasis/cooler_ai.ttl`, Erklärung in `docs/wissensbasis.md`.
+
+## Rezepte (`daten/rezepte.json`)
+
+```json
+{
+  "id": "spaghetti_carbonara", "titel": "Spaghetti Carbonara", "kochzeit_min": 20, "portionen": 2,
+  "zutaten": [
+    {"zutat": "Spaghetti", "menge": 200, "einheit": "g", "pflicht": true},
+    {"zutat": "Pfeffer", "menge": null, "einheit": null, "pflicht": true}
+  ]
+}
+```
+
+`zutat` darf auch eine Kategorie sein (`Teigwaren`), dann passt jede Unterart. `vegetarisch` wird nicht eingetragen, sondern aus der Ontologie abgeleitet.
+
+## SQLite
+
 ```mermaid
 erDiagram
-  KATEGORIE ||--o{ ZUTAT : enthaelt
-  KATEGORIE |o--o{ KATEGORIE : "ist Unterkategorie"
-  ZUTAT ||--o{ ERSATZREGEL : "wird ersetzt"
-  ZUTAT ||--o{ ERSATZREGEL : ersetzt
-  REZEPT ||--|{ REZEPT_ZUTAT : "besteht aus"
-  ZUTAT ||--o{ REZEPT_ZUTAT : "wird verwendet"
-  ZUTAT ||--o{ VORRATSEINTRAG : "liegt im Vorrat"
-  REZEPT ||--o{ BEWERTUNG : erhaelt
-  KATEGORIE {
-    int id PK
-    string name
-    int oberkategorie_id FK
-  }
-  ZUTAT {
-    int id PK
-    string name
-    int kategorie_id FK
-    string standard_einheit
-    int haltbar_tage
-    int haltbar_offen_tage
-    bool grundstock
-  }
-  ERSATZREGEL {
-    int id PK
-    int zutat_id FK
-    int ersatz_id FK
-    string begruendung
-  }
-  REZEPT {
-    int id PK
-    string titel
-    int kochzeit_min
-    bool vegetarisch
-    int portionen
-  }
-  REZEPT_ZUTAT {
-    int rezept_id FK
-    int zutat_id FK
-    float menge
-    string einheit
-    bool pflicht
-  }
   VORRATSEINTRAG {
     int id PK
-    int zutat_id FK
+    string zutat "ID aus der Ontologie"
     float menge
     string einheit
     date ablaufdatum
@@ -54,15 +65,15 @@ erDiagram
   }
   BEWERTUNG {
     int id PK
-    int rezept_id FK
+    string rezept_id "ID aus rezepte.json"
     date datum
-    string vorrat_snapshot
-    int note
+    int note "1 bis 5"
+    string vorrat_snapshot "JSON"
   }
 ```
 
 ## Hinweise
 
-- `KATEGORIE` verweist auf sich selbst und bildet so die Hierarchie (Cherrytomate → Tomate → Gemüse).
-- `REZEPT_ZUTAT.pflicht` trennt Pflicht- von optionalen Zutaten.
-- `BEWERTUNG.vorrat_snapshot` speichert den Vorrat zum Zeitpunkt der Bewertung als JSON. Ohne diesen Snapshot lassen sich die Trainingsdaten nicht rekonstruieren.
+- **Effektives Ablaufdatum** = früheres von Etikett und Öffnungsdatum + `haltbarOffenTage` (`Wissensbasis.effektives_ablaufdatum`).
+- **`BEWERTUNG.vorrat_snapshot`** speichert den Vorrat zum Zeitpunkt der Bewertung als JSON (Zutat, Menge, Einheit, Tage bis Ablauf). Ohne ihn lassen sich die Trainingsmerkmale nicht rekonstruieren.
+- Wird eine Zutat aus der Ontologie gelöscht, bleiben alte Vorratseinträge mit dieser ID stehen. Zutaten deshalb lieber umbenennen (`rdfs:label`) als die ID ändern.
