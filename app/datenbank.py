@@ -1,0 +1,118 @@
+"""SQLite-Datenbank für die Nutzerdaten: Vorrat und Bewertungen.
+
+Das Fachwissen über Zutaten (Kategorien, Haltbarkeit, Ersatzregeln) liegt NICHT hier,
+sondern in der Ontologie (wissensbasis/cooler_ai.ttl). In der Datenbank steht nur
+die Zutat-ID, z.B. "Cherrytomate".
+"""
+import json
+import sqlite3
+from datetime import date
+from pathlib import Path
+
+import pandas as pd
+
+DB_PFAD = Path(__file__).parent.parent / "cooler_ai.db"
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS vorratseintrag (
+    id INTEGER PRIMARY KEY,
+    zutat TEXT NOT NULL,          -- ID aus der Ontologie
+    menge REAL,
+    einheit TEXT,
+    ablaufdatum TEXT,             -- ISO-Datum, z.B. 2026-10-01
+    geoeffnet_am TEXT
+);
+CREATE TABLE IF NOT EXISTS bewertung (
+    id INTEGER PRIMARY KEY,
+    rezept_id TEXT NOT NULL,
+    datum TEXT NOT NULL,
+    note INTEGER NOT NULL,        -- 1 (passt gar nicht) bis 5 (passt perfekt)
+    vorrat_snapshot TEXT NOT NULL -- Vorrat zum Zeitpunkt der Bewertung als JSON (Pflicht fürs Training!)
+);
+"""
+
+
+def verbinde(pfad=DB_PFAD):
+    conn = sqlite3.connect(pfad, check_same_thread=False)
+    conn.executescript(SCHEMA)
+    return conn
+
+
+def _iso(d):
+    return d.isoformat() if d is not None and pd.notna(d) else None
+
+
+def _als_datum(text):
+    return date.fromisoformat(text) if isinstance(text, str) and text else None  # leer = None oder NaN
+
+
+# ---------------------------------------------------------------- Vorrat
+
+def lade_vorrat(conn, wb, heute=None):
+    """Vorrat als DataFrame, inkl. Tage bis zum effektiven Ablaufdatum, dringendste zuerst."""
+    heute = heute or date.today()
+    df = pd.read_sql("SELECT * FROM vorratseintrag", conn)
+    df["ablaufdatum"] = [_als_datum(d) for d in df["ablaufdatum"]]
+    df["geoeffnet_am"] = [_als_datum(d) for d in df["geoeffnet_am"]]
+    df["name"] = [wb.namen.get(z, z) for z in df["zutat"]]
+    tage = []
+    for r in df.itertuples():
+        eff = wb.effektives_ablaufdatum(r.zutat, r.ablaufdatum, r.geoeffnet_am)
+        tage.append((eff - heute).days if eff is not None else None)
+    df["tage"] = pd.array(tage, dtype="Int64")  # Int64 erlaubt leere Werte
+    return df.sort_values("tage", na_position="last").set_index("id")
+
+
+def vorrat_als_liste(df):
+    """Vorrat im Format, das die Wissensbasis und der Snapshot erwarten."""
+    return [
+        {
+            "zutat": r.zutat,
+            "menge": None if pd.isna(r.menge) else float(r.menge),
+            "einheit": r.einheit,
+            "tage": None if pd.isna(r.tage) else int(r.tage),
+        }
+        for r in df.itertuples()
+    ]
+
+
+def fuege_hinzu(conn, zutat, menge, einheit, ablaufdatum):
+    conn.execute(
+        "INSERT INTO vorratseintrag (zutat, menge, einheit, ablaufdatum) VALUES (?, ?, ?, ?)",
+        (zutat, menge, einheit, _iso(ablaufdatum)),
+    )
+    conn.commit()
+
+
+def aktualisiere(conn, eintrag_id, menge, ablaufdatum, geoeffnet_am):
+    conn.execute(
+        "UPDATE vorratseintrag SET menge = ?, ablaufdatum = ?, geoeffnet_am = ? WHERE id = ?",
+        (menge, _iso(ablaufdatum), _iso(geoeffnet_am), eintrag_id),
+    )
+    conn.commit()
+
+
+def loesche(conn, eintrag_id):
+    conn.execute("DELETE FROM vorratseintrag WHERE id = ?", (eintrag_id,))
+    conn.commit()
+
+
+# ---------------------------------------------------------------- Bewertungen
+
+def speichere_bewertung(conn, rezept_id, note, vorrat_snapshot):
+    conn.execute(
+        "INSERT INTO bewertung (rezept_id, datum, note, vorrat_snapshot) VALUES (?, ?, ?, ?)",
+        (rezept_id, date.today().isoformat(), note, json.dumps(vorrat_snapshot, ensure_ascii=False)),
+    )
+    conn.commit()
+
+
+def lade_bewertungen(conn):
+    """Alle Bewertungen, älteste zuerst, mit ausgepacktem Snapshot."""
+    zeilen = conn.execute(
+        "SELECT rezept_id, datum, note, vorrat_snapshot FROM bewertung ORDER BY datum, id"
+    ).fetchall()
+    return [
+        {"rezept_id": r, "datum": d, "note": n, "vorrat": json.loads(s)}
+        for r, d, n, s in zeilen
+    ]

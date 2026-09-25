@@ -1,0 +1,181 @@
+[
+  {
+    "id": "spaghetti_carbonara", "titel": "Spaghetti Carbonara", "kochzeit_min": 20, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Spaghetti", "menge": 200, "einheit": "g", "pflicht": true},
+      {"zutat": "Ei", "menge": 2, "einheit": "Stück", "pflicht": true},
+      {"zutat": "Speck", "menge": 100, "einheit": "g", "pflicht": true},
+      {"zutat": "Parmesan", "menge": 40, "einheit": "g", "pflicht": true},
+      {"zutat": "Pfeffer", "menge": null, "einheit": null, "pflicht": true}
+    ]
+  },
+  {
+    "id": "pasta_tomaten_rahm", "titel": "Pasta an Tomaten-Rahm-Sauce", "kochzeit_min": 25, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Teigwaren", "menge": 200, "einheit": "g", "pflicht": true},
+      {"zutat": "Pelati", "menge": 400, "einheit": "g", "pflicht": true},
+      {"zutat": "Rahm", "menge": 100, "einheit": "ml", "pflicht": true},
+      {"zutat": "Zwiebel", "menge": 80, "einheit": "g", "pflicht": true},
+      {"zutat": "Knoblauch", "menge": 5, "einheit": "g", "pflicht": false},
+      {"zutat": "Parmesan", "menge": 30, "einheit": "g", "pflicht": false},
+      {"zutat": "Olivenoel", "menge": null, "einheit": null, "pflicht": true}
+    ]
+  },
+  {
+    "id": "gemuese_risotto", "titel": "Gemüserisotto", "kochzeit_min": 35, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Reis", "menge": 160, "einheit": "g", "pflicht": true},
+      {"zutat": "Zwiebel", "menge": 80, "einheit": "g", "pflicht": true},
+      {"zutat": "Hartkaese", "menge": 40, "einheit": "g", "pflicht": true},
+      {"zutat": "Butter", "menge": 20, "einheit": "g", "pflicht": true},
+      {"zutat": "Karotte", "menge": 100, "einheit": "g", "pflicht": false},
+      {"zutat": "Zucchetti", "menge": 150, "einheit": "g", "pflicht": false},
+      {"zutat": "Bouillon", "menge": null, "einheit": null, "pflicht": true}
+    ]
+  },
+  {
+    "id": "ruehrei_tomaten", "titel": "Rührei mit Tomaten", "kochzeit_min": 10, "portionen": 1,
+    "zutaten": [
+      {"zutat": "Ei", "menge": 3, "einheit": "Stück", "pflicht": true},
+      {"zutat": "Tomate", "menge": 150, "einheit": "g", "pflicht": true},
+      {"zutat": "Butter", "menge": 10, "einheit": "g", "pflicht": false},
+      {"zutat": "Brot", "menge": 100, "einheit": "g", "pflicht": false}
+    ]
+  },
+  {
+    "id": "omelette_spinat_feta", "titel": "Omelette mit Spinat und Feta", "kochzeit_min": 15, "portionen": 1,
+    "zutaten": [
+      {"zutat": "Ei", "menge": 3, "einheit": "Stück", "pflicht": true},
+      {"zutat": "Spinat", "menge": 100, "einheit": "g", "pflicht": true},
+      {"zutat": "Feta", "menge": 50, "einheit": "g", "pflicht": false},
+      {"zutat": "Milch", "menge": 30, "einheit": "ml", "pflicht": false}
+    ]
+  },
+  {
+    "id": "karottensuppe", "titel": "Karottensuppe", "kochzeit_min": 30, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Karotte", "menge": 400, "einheit": "g", "pflicht": true},
+      {"zutat": "Zwiebel", "menge": 80, "einheit": "g", "pflicht": true},
+      {"zutat": "Kartoffel", "menge": 150, "einheit": "g", "pflicht": false},
+      {"zutat": "Rahm", "menge": 50, "einheit": "ml", "pflicht": false},
+      {"zutat": "Bouillon", "menge": null, "einheit": null, "pflicht": true}
+    ]
+  },
+  {
+    "id": "kartoffelgratin", "titel": "Kartoffelgratin", "kochzeit_min": 60, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Kartoffel", "menge": 600, "einheit": "g", "pflicht": true},
+      {"zutat": "Rahm", "menge": 150, "einheit": "ml", "pflicht": true},
+      {"zutat": "Milch", "menge": 150, "einheit": "ml", "pflicht": true},
+      {"zutat": "Hartkaese", "menge": 60, "einheit": "g", "pflicht": false},
+      {"zutat": "Knoblauch", "menge": 5, "einheit": "g", "pflicht": false}
+    ]
+  },
+  {
+    "id": "aelplermagronen", "titel": "Älplermagronen", "kochzeit_min": 35, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Hoernli", "menge": 200, "einheit": "g", "pflicht": true},
+      {"zutat": "Kartoffel", "menge": 250, "einheit": "g", "pflicht": true},
+      {"zutat": "Rahm", "menge": 150, "einheit": "ml", "pflicht": true},
+      {"zutat": "Hartkaese", "menge": 80, "einheit": "g", "pflicht": true},
+      {"zutat": "Zwiebel", "menge": 100, "einheit": "g", "pflicht": true},
+      {"zutat": "Apfel", "menge": 2, "einheit": "Stück", "pflicht": false}
+    ]
+  },
+  {
+    "id": "poulet_curry", "titel": "Poulet-Curry mit Reis", "kochzeit_min": 30, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Poulet", "menge": 300, "einheit": "g", "pflicht": true},
+      {"zutat": "Reis", "menge": 160, "einheit": "g", "pflicht": true},
+      {"zutat": "Rahm", "menge": 150, "einheit": "ml", "pflicht": true},
+      {"zutat": "Zwiebel", "menge": 80, "einheit": "g", "pflicht": true},
+      {"zutat": "Peperoni", "menge": 150, "einheit": "g", "pflicht": false},
+      {"zutat": "Currypulver", "menge": null, "einheit": null, "pflicht": true}
+    ]
+  },
+  {
+    "id": "linsen_chili", "titel": "Linsen-Chili", "kochzeit_min": 40, "portionen": 3,
+    "zutaten": [
+      {"zutat": "Linsen", "menge": 200, "einheit": "g", "pflicht": true},
+      {"zutat": "Pelati", "menge": 400, "einheit": "g", "pflicht": true},
+      {"zutat": "Zwiebel", "menge": 80, "einheit": "g", "pflicht": true},
+      {"zutat": "Peperoni", "menge": 150, "einheit": "g", "pflicht": false},
+      {"zutat": "Reis", "menge": 160, "einheit": "g", "pflicht": false}
+    ]
+  },
+  {
+    "id": "caprese", "titel": "Tomaten-Mozzarella-Salat", "kochzeit_min": 10, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Tomate", "menge": 300, "einheit": "g", "pflicht": true},
+      {"zutat": "Mozzarella", "menge": 150, "einheit": "g", "pflicht": true},
+      {"zutat": "Olivenoel", "menge": null, "einheit": null, "pflicht": true}
+    ]
+  },
+  {
+    "id": "ofenlachs_gemuese", "titel": "Lachs mit Ofengemüse", "kochzeit_min": 35, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Lachs", "menge": 250, "einheit": "g", "pflicht": true},
+      {"zutat": "Kartoffel", "menge": 400, "einheit": "g", "pflicht": true},
+      {"zutat": "Zucchetti", "menge": 200, "einheit": "g", "pflicht": false},
+      {"zutat": "Zitrone", "menge": 1, "einheit": "Stück", "pflicht": false}
+    ]
+  },
+  {
+    "id": "brokkoli_penne", "titel": "Penne mit Brokkoli-Käse-Sauce", "kochzeit_min": 20, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Teigwaren", "menge": 200, "einheit": "g", "pflicht": true},
+      {"zutat": "Brokkoli", "menge": 300, "einheit": "g", "pflicht": true},
+      {"zutat": "Rahm", "menge": 100, "einheit": "ml", "pflicht": true},
+      {"zutat": "Hartkaese", "menge": 50, "einheit": "g", "pflicht": false}
+    ]
+  },
+  {
+    "id": "hackbaellchen_tomatensauce", "titel": "Hackbällchen an Tomatensauce", "kochzeit_min": 40, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Hackfleisch", "menge": 300, "einheit": "g", "pflicht": true},
+      {"zutat": "Pelati", "menge": 400, "einheit": "g", "pflicht": true},
+      {"zutat": "Zwiebel", "menge": 80, "einheit": "g", "pflicht": true},
+      {"zutat": "Ei", "menge": 1, "einheit": "Stück", "pflicht": false},
+      {"zutat": "Brot", "menge": 50, "einheit": "g", "pflicht": false},
+      {"zutat": "Teigwaren", "menge": 200, "einheit": "g", "pflicht": false}
+    ]
+  },
+  {
+    "id": "bananen_pancakes", "titel": "Bananen-Pancakes", "kochzeit_min": 15, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Banane", "menge": 2, "einheit": "Stück", "pflicht": true},
+      {"zutat": "Ei", "menge": 2, "einheit": "Stück", "pflicht": true},
+      {"zutat": "Milch", "menge": 100, "einheit": "ml", "pflicht": true},
+      {"zutat": "Mehl", "menge": null, "einheit": null, "pflicht": true}
+    ]
+  },
+  {
+    "id": "couscous_salat", "titel": "Couscous-Salat mit Feta", "kochzeit_min": 15, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Couscous", "menge": 150, "einheit": "g", "pflicht": true},
+      {"zutat": "Feta", "menge": 100, "einheit": "g", "pflicht": true},
+      {"zutat": "Peperoni", "menge": 100, "einheit": "g", "pflicht": false},
+      {"zutat": "Tomate", "menge": 150, "einheit": "g", "pflicht": false},
+      {"zutat": "Zitrone", "menge": 1, "einheit": "Stück", "pflicht": false}
+    ]
+  },
+  {
+    "id": "brotsalat", "titel": "Brotsalat mit Tomaten", "kochzeit_min": 15, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Brot", "menge": 200, "einheit": "g", "pflicht": true},
+      {"zutat": "Tomate", "menge": 300, "einheit": "g", "pflicht": true},
+      {"zutat": "Zwiebel", "menge": 50, "einheit": "g", "pflicht": false},
+      {"zutat": "Mozzarella", "menge": 125, "einheit": "g", "pflicht": false},
+      {"zutat": "Olivenoel", "menge": null, "einheit": null, "pflicht": true}
+    ]
+  },
+  {
+    "id": "lauch_schinken_kartoffeln", "titel": "Lauchgemüse mit Schinken und Kartoffeln", "kochzeit_min": 30, "portionen": 2,
+    "zutaten": [
+      {"zutat": "Lauch", "menge": 300, "einheit": "g", "pflicht": true},
+      {"zutat": "Kartoffel", "menge": 400, "einheit": "g", "pflicht": true},
+      {"zutat": "Schinken", "menge": 100, "einheit": "g", "pflicht": false},
+      {"zutat": "Rahm", "menge": 100, "einheit": "ml", "pflicht": false}
+    ]
+  }
+]
