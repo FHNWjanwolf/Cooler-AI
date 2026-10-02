@@ -2,10 +2,11 @@
 
 Ablauf: Vorrat laden -> Wissensbasis filtert geeignete Rezepte -> Ranking sortiert
 -> Anzeige mit Begründung -> Bewertung wird mit Vorrat-Snapshot gespeichert (Trainingsdaten).
+Mit "Gekocht" werden die verwendeten Zutaten aus dem Vorrat entfernt.
 """
 import streamlit as st
 
-from app.datenbank import lade_vorrat, speichere_bewertung, vorrat_als_liste
+from app.datenbank import koche, lade_vorrat, speichere_bewertung, vorrat_als_liste
 from app.ressourcen import ml_modell, verbindung, wissensbasis
 from ml.ranking import sortiere
 from wissensbasis.eignung import finde_kandidaten, lade_rezepte
@@ -24,6 +25,33 @@ def zutaten_text(rezept):
             text += " (optional)"
         teile.append(text)
     return ", ".join(teile)
+
+
+@st.dialog("Guten Appetit!")
+def gekocht_dialog(kandidat, vorrat):
+    """Fragt, was aufgebraucht ist, speichert die Bewertung und baut den Vorrat ab."""
+    rezept = kandidat["rezept"]
+    st.markdown(f"**{rezept['titel']}**")
+
+    aufgebraucht = []
+    if kandidat["verwendet"]:
+        st.write("Welche Zutaten sind jetzt aufgebraucht? Abwählen, was noch übrig ist.")
+        for artikel in kandidat["verwendet"]:
+            if st.checkbox(wb.namen.get(artikel["zutat"], artikel["zutat"]), value=True,
+                           key=f"aufgebraucht_{rezept['id']}_{artikel['id']}"):
+                aufgebraucht.append(artikel["id"])
+    else:
+        st.write("Das Rezept braucht nur Zutaten aus dem Grundstock.")
+
+    note = st.select_slider("Wie hat es geschmeckt?", options=[1, 2, 3, 4, 5], value=4)
+    if st.button("Speichern", type="primary"):
+        koche(conn, rezept["id"], note, vorrat, aufgebraucht)
+        meldung = f"{len(aufgebraucht)} Zutaten aus dem Vorrat entfernt."
+        if kandidat["dringend"]:
+            gerettet = ", ".join(wb.namen[z] for z in kandidat["dringend"])
+            meldung = f"Gerettet: {gerettet}! " + meldung
+        st.session_state.meldung = meldung  # wird nach dem Neuladen oben angezeigt
+        st.rerun()
 
 
 def zeige_rezept(kandidat, vorrat):
@@ -48,8 +76,14 @@ def zeige_rezept(kandidat, vorrat):
                 speichere_bewertung(conn, rezept["id"], note, vorrat)
                 st.success("Danke! Die Bewertung fliesst ins nächste Training ein.")
 
+        if st.button("🍳 Gekocht", key=f"gekocht_{rezept['id']}",
+                     help="Bewertet das Rezept und entfernt die verwendeten Zutaten aus dem Vorrat."):
+            gekocht_dialog(kandidat, vorrat)
+
 
 st.title("Was koche ich heute?")
+if "meldung" in st.session_state:
+    st.success(st.session_state.pop("meldung"), icon="🎉")
 
 vorrat_df = lade_vorrat(conn, wb)
 if vorrat_df.empty:
