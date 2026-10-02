@@ -20,7 +20,7 @@ Reine Mengen- oder Regellogik ("Rezepte mit den meisten vorhandenen Zutaten") z�
 - Team: 3 Personen. A = UI und Vorrat (`app/`), B = Wissensbasis und Rezeptdaten (`wissensbasis/`, `daten/`), C = ML und Evaluation (`ml/`).
 - Vorrat wird manuell erfasst. Kein Kassenzettel-OCR, keine Kühlschrank-Fotoerkennung.
 - Stack: Python, Streamlit, SQLite (lokal Datei, Test/Prod über Turso), scikit-learn, rdflib. Doku in Markdown.
-- Deployment: Streamlit Community Cloud. `main` = Testumgebung (automatisch), `prod` = Produktion (nur über den Workflow "Deploy Prod"). Branches: `feature/...` → `dev` → `main` → `prod`. Details: `docs/deployment.md`.
+- Deployment: Streamlit Community Cloud. `test` = Testumgebung, `main` = Produktion. Branches: `feature/...` → `dev` → `test` → `main`, jeweils per Pull Request (`test` → `main` erst nach Prüfung auf der Testumgebung). Details: `docs/deployment.md`.
 - ML-Modell wird nicht als Datei gespeichert, sondern beim App-Start aus den Bewertungen trainiert.
 - Wissensbasis als OWL-Ontologie (`wissensbasis/cooler_ai.ttl`, Turtle, rdflib + SPARQL, kein Reasoner). Getrennt von Code und Nutzerdaten. Noch von der Lehrperson zu bestätigen.
 - Rezepte in `daten/rezepte.json`, Vorrat und Bewertungen in SQLite bzw. Turso. Verknüpfung über Zutat-ID (lokaler Name der OWL-Klasse).
