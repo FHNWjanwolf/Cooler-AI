@@ -71,6 +71,7 @@ erDiagram
     date datum
     int note "1 bis 5"
     string vorrat_snapshot "JSON"
+    int gekocht "1 = wirklich gekocht"
   }
 ```
 
@@ -78,4 +79,5 @@ erDiagram
 
 - **Effektives Ablaufdatum** = früheres von Etikett und Öffnungsdatum + `haltbarOffenTage` (`Wissensbasis.effektives_ablaufdatum`).
 - **`BEWERTUNG.vorrat_snapshot`** speichert den Vorrat zum Zeitpunkt der Bewertung als JSON (Zutat, Menge, Einheit, Tage bis Ablauf). Ohne ihn lassen sich die Trainingsmerkmale nicht rekonstruieren.
+- **`BEWERTUNG.gekocht`** kam nachträglich dazu. `verbinde()` ergänzt die Spalte in bestehenden Datenbanken (Turso Test/Prod) automatisch.
 - Wird eine Zutat aus der Ontologie gelöscht, bleiben alte Vorratseinträge mit dieser ID stehen. Zutaten deshalb lieber umbenennen (`rdfs:label`) als die ID ändern.
