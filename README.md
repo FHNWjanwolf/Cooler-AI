@@ -41,5 +41,5 @@ Einstieg in die Doku: [`docs/architektur.md`](docs/architektur.md), dann [`docs/
 
 ## Branches und Deployment
 
-`feature/...` → Pull Request auf `dev` → Pull Request `dev` → `main` (Testumgebung, deployt automatisch) → manuell auf `prod` (Produktion).
+`feature/...` → Pull Request auf `dev` → Pull Request `dev` → `test` (Testumgebung, deployt automatisch) → Pull Request `test` → `main` (Produktion, manuell nach dem Test).
 Details und Einrichtung: [`docs/deployment.md`](docs/deployment.md).
