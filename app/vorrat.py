@@ -23,6 +23,7 @@ def status(tage):
 st.title("Vorrat")
 conn = verbindung()
 wb = wissensbasis()
+person = st.session_state.person  # gesetzt in cooler_ai.py
 
 with st.form("erfassen", clear_on_submit=True):
     c1, c2, c3 = st.columns([3, 1.5, 2])
@@ -39,13 +40,13 @@ with st.form("erfassen", clear_on_submit=True):
             haltbar = wb.eigenschaft(zutat, "haltbarTage")
             if ablauf is None and haltbar is not None:
                 ablauf = date.today() + timedelta(days=haltbar)
-            fuege_hinzu(conn, zutat, menge, einheit, ablauf)
+            fuege_hinzu(conn, person, zutat, menge, einheit, ablauf)
             menge_text = f"{menge:g} {einheit} " if menge else ""
             st.success(f"{menge_text}{wb.namen[zutat]} hinzugefügt.")
 
 st.caption("Immer vorhanden: " + ", ".join(wb.grundstock()))
 
-vorrat = lade_vorrat(conn, wb)
+vorrat = lade_vorrat(conn, person, wb)
 if vorrat.empty:
     st.info("Der Vorrat ist leer. Füge oben deine erste Zutat hinzu.")
 else:
@@ -73,8 +74,8 @@ else:
         for eintrag_id, r in bearbeitet.iterrows():
             leer = pd.notna(r.menge) and r.menge <= 0
             if r.aufgebraucht or leer:
-                loesche(conn, int(eintrag_id))
+                loesche(conn, person, int(eintrag_id))
             else:
                 menge = float(r.menge) if pd.notna(r.menge) else None
-                aktualisiere(conn, int(eintrag_id), menge, r.ablaufdatum, r.geoeffnet_am)
+                aktualisiere(conn, person, int(eintrag_id), menge, r.ablaufdatum, r.geoeffnet_am)
         st.rerun()
