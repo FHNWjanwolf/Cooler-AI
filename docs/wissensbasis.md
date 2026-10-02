@@ -11,7 +11,7 @@ Sie ist bewusst von Code und Datenbank getrennt: Wer Zutaten oder Ersatzregeln e
 | Haltbarkeit, Einheit, Grundstock, vegetarisch | Ontologie | wird entlang der Hierarchie vererbt |
 | Ersatzregeln mit Begründung | Ontologie | Fachwissen |
 | Rezepte | `daten/rezepte.json` | viele Einträge, einfache Struktur, leicht zu ergänzen oder zu importieren |
-| Vorrat, Bewertungen | SQLite (`cooler_ai.db`) | Nutzerdaten, ändern sich ständig |
+| Vorrat, Bewertungen | SQLite (lokal `cooler_ai.db`, Test/Prod Turso) | Nutzerdaten, ändern sich ständig |
 
 ## Modellierung in einem Satz pro Konzept
 

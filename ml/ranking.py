@@ -5,18 +5,15 @@ Zwei Varianten:
   - ML-Modell: logistische Regression, gelernt aus den Bewertungen (ml/trainiere.py).
     Sie schätzt die Wahrscheinlichkeit, dass ein Rezept gut bewertet wird (Note >= 4).
 
-Solange kein Modell trainiert wurde, sortiert die App nach der Baseline.
+Solange es zu wenig Bewertungen gibt, sortiert die App nach der Baseline.
+Das Modell wird nicht als Datei gespeichert, sondern beim Start der App aus den
+Bewertungen in der Datenbank trainiert (siehe app/ressourcen.py). Das dauert nur
+Sekunden und funktioniert auch in der Streamlit Cloud, wo Dateien nicht erhalten bleiben.
 """
-from pathlib import Path
-
-import joblib
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-
-MODELL_PFAD = Path(__file__).with_name("modell.joblib")
-
 
 def baseline_score(merkmale):
     """Regelbasierte Reihenfolge: zuerst verwerten, was bald abläuft, dann möglichst wenig Ersatz."""
@@ -38,15 +35,6 @@ def neues_modell():
         StandardScaler(),
         LogisticRegression(max_iter=1000),
     )
-
-
-def lade_modell():
-    """Gespeichertes Modell oder None, falls noch keins trainiert wurde."""
-    return joblib.load(MODELL_PFAD) if MODELL_PFAD.exists() else None
-
-
-def speichere_modell(modell):
-    joblib.dump(modell, MODELL_PFAD)
 
 
 def sortiere(kandidaten, modell=None):

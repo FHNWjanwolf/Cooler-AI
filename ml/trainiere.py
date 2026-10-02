@@ -8,10 +8,13 @@ Ablauf:
   3. Zeitlicher Split: die ältesten 80 % zum Trainieren, die neuesten 20 % zum Testen.
   4. Metrik: Top-3-Trefferquote. Für jede gut bewertete Test-Situation wird geprüft,
      ob das Rezept unter den ersten drei Vorschlägen gelandet wäre (Modell vs. Baseline).
-  5. Zum Schluss mit ALLEN Daten neu trainieren und das Modell speichern.
+  5. Zum Schluss mit ALLEN Daten neu trainieren und die gelernten Gewichte anzeigen.
+
+Die App trainiert das Modell beim Start selbst (trainiere_falls_moeglich).
+Dieses Skript dient der Evaluation. Gegen die Prod-Datenbank: siehe docs/deployment.md
 """
 from app.datenbank import lade_bewertungen, verbinde
-from ml.ranking import gewichte, neues_modell, sortiere, speichere_modell
+from ml.ranking import gewichte, neues_modell, sortiere
 from wissensbasis.eignung import finde_kandidaten, lade_rezepte, pruefe_rezept
 from wissensbasis.wissen import lade_wissensbasis
 
@@ -42,6 +45,16 @@ def trainiere(bewertungen, rezepte, wb):
     modell = neues_modell()
     modell.fit(X, y)
     return modell
+
+
+def trainiere_falls_moeglich(bewertungen, rezepte, wb):
+    """Modell für die App, oder None, wenn es (noch) zu wenig brauchbare Bewertungen gibt."""
+    if len(bewertungen) < MIN_BEWERTUNGEN:
+        return None
+    try:
+        return trainiere(bewertungen, rezepte, wb)
+    except ValueError:
+        return None  # nur gute oder nur schlechte Bewertungen
 
 
 def top3_trefferquote(test_bewertungen, rezepte, wb, modell):
@@ -85,8 +98,7 @@ def main():
 
     # --- Endgültiges Modell mit allen Daten
     modell = trainiere(bewertungen, rezepte, wb)
-    speichere_modell(modell)
-    print("\nModell gespeichert. Wichtigste gelernte Gewichte:")
+    print("\nModell mit allen Daten (so nutzt es die App). Wichtigste gelernte Gewichte:")
     for name, gewicht in gewichte(modell)[:10]:
         print(f"  {name:30s} {gewicht:+.2f}")
 

@@ -1,10 +1,17 @@
 """SQLite-Datenbank für die Nutzerdaten: Vorrat und Bewertungen.
 
+Zwei Varianten, gleiches SQL:
+  - Lokal (Entwicklung, Tests): Datei cooler_ai.db mit dem sqlite3-Modul von Python.
+  - Test/Prod (Streamlit Cloud): Turso, eine SQLite-Datenbank in der Cloud. Wird benutzt,
+    sobald die Umgebungsvariablen TURSO_DATABASE_URL und TURSO_AUTH_TOKEN gesetzt sind
+    (in der Streamlit Cloud als Secrets). Details: docs/deployment.md
+
 Das Fachwissen über Zutaten (Kategorien, Haltbarkeit, Ersatzregeln) liegt NICHT hier,
 sondern in der Ontologie (wissensbasis/cooler_ai.ttl). In der Datenbank steht nur
 die Zutat-ID, z.B. "Cherrytomate".
 """
 import json
+import os
 import sqlite3
 from datetime import date
 from pathlib import Path
@@ -33,9 +40,22 @@ CREATE TABLE IF NOT EXISTS bewertung (
 
 
 def verbinde(pfad=DB_PFAD):
-    conn = sqlite3.connect(pfad, check_same_thread=False)
+    url = os.environ.get("TURSO_DATABASE_URL")
+    if url:
+        import libsql  # nur nötig, wenn Turso benutzt wird
+
+        conn = libsql.connect(url, auth_token=os.environ.get("TURSO_AUTH_TOKEN", ""))
+    else:
+        conn = sqlite3.connect(pfad, check_same_thread=False)
     conn.executescript(SCHEMA)
     return conn
+
+
+def _als_dataframe(conn, sql):
+    """Abfrage als DataFrame. (pd.read_sql kennt nur sqlite3, nicht den Turso-Client.)"""
+    cursor = conn.execute(sql)
+    spalten = [d[0] for d in cursor.description]
+    return pd.DataFrame(cursor.fetchall(), columns=spalten)
 
 
 def _iso(d):
@@ -51,7 +71,7 @@ def _als_datum(text):
 def lade_vorrat(conn, wb, heute=None):
     """Vorrat als DataFrame, inkl. Tage bis zum effektiven Ablaufdatum, dringendste zuerst."""
     heute = heute or date.today()
-    df = pd.read_sql("SELECT * FROM vorratseintrag", conn)
+    df = _als_dataframe(conn, "SELECT * FROM vorratseintrag")
     df["ablaufdatum"] = [_als_datum(d) for d in df["ablaufdatum"]]
     df["geoeffnet_am"] = [_als_datum(d) for d in df["geoeffnet_am"]]
     df["name"] = [wb.namen.get(z, z) for z in df["zutat"]]

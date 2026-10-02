@@ -1,0 +1,33 @@
+# Manuelles Deployment auf die Produktion.
+#
+# Auslösen: GitHub → Actions → "Deploy Prod" → "Run workflow".
+# Der Workflow prüft den aktuellen Stand von main mit pytest und setzt dann den
+# Branch prod auf genau diesen Stand. Die Streamlit Cloud deployt prod danach automatisch.
+# Nur Fast-Forward: Wurde prod direkt verändert, bricht der Push ab (gewollt).
+name: Deploy Prod
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+      - run: pytest
+
+      - name: prod auf main setzen
+        run: git push origin HEAD:refs/heads/prod
