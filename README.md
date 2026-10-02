@@ -13,7 +13,7 @@ Vorrat erfassen → Wissensbasis (OWL) filtert geeignete Rezepte → ML-Modell s
 pip install -r requirements.txt
 streamlit run cooler_ai.py      # App
 pytest                          # Tests (vor jedem Pull Request)
-python -m ml.trainiere          # Modell trainieren + gegen Baseline evaluieren (ab 20 Bewertungen)
+python -m ml.trainiere          # Modell gegen Baseline evaluieren (ab 20 Bewertungen)
 ```
 
 Alle Befehle im Hauptordner ausführen.
@@ -37,4 +37,9 @@ Einstieg in die Doku: [`docs/architektur.md`](docs/architektur.md), dann [`docs/
 - Aufgaben als GitHub Issues erfassen.
 - Pro Aufgabe ein eigener Branch, z.B. `feature/vorrat-bearbeiten`.
 - Änderungen per Pull Request, eine andere Person prüft vor dem Zusammenführen.
-- Die lokale Datenbank (`cooler_ai.db`) und das trainierte Modell (`ml/modell.joblib`) werden nicht eingecheckt.
+- Die lokale Datenbank (`cooler_ai.db`) wird nicht eingecheckt.
+
+## Branches und Deployment
+
+`feature/...` → Pull Request auf `dev` → Pull Request `dev` → `main` (Testumgebung, deployt automatisch) → manuell auf `prod` (Produktion).
+Details und Einrichtung: [`docs/deployment.md`](docs/deployment.md).

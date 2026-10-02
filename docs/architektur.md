@@ -2,7 +2,7 @@
 
 ```mermaid
 flowchart TD
-    A[Vorrat erfassen<br>app/vorrat.py] --> B[(SQLite<br>Vorrat, Bewertungen)]
+    A[Vorrat erfassen<br>app/vorrat.py] --> B[(SQLite / Turso<br>Vorrat, Bewertungen)]
     O[(Ontologie<br>wissensbasis/cooler_ai.ttl)] --> C
     R[(Rezepte<br>daten/rezepte.json)] --> C
     B --> C[Wissensbasis: filtert, ersetzt, begründet<br>wissensbasis/eignung.py]

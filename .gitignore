@@ -7,5 +7,4 @@ venv/
 .DS_Store
 .streamlit/secrets.toml
 .ipynb_checkpoints/
-ml/modell.joblib
 .pytest_cache/
