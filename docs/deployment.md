@@ -3,24 +3,27 @@
 ## Branches und Umgebungen
 
 ```
-feature/...  ──PR──▶  dev  ──PR──▶  main  ──"Deploy Prod"──▶  prod
+feature/...  ──PR──▶  dev  ──PR──▶  test  ──PR (manuell)──▶  main
                                      │                        │
                               Testumgebung              Produktion
-                         (deployt automatisch)   (deployt automatisch,
-                                                  prod wird aber nur über
-                                                  den Workflow verändert)
+                         (deployt automatisch)    (deployt automatisch
+                                                   nach dem Merge)
 ```
 
 | Branch | Zweck | Umgebung | Datenbank |
 |---|---|---|---|
 | `feature/...` | eine Aufgabe, Branch von `dev` | lokal | `cooler_ai.db` (Datei) |
 | `dev` | Integration, alles Fertige landet zuerst hier | lokal | `cooler_ai.db` (Datei) |
-| `main` | Testumgebung | Streamlit Cloud, App "cooler-ai-test" | Turso `cooler-ai-test` |
-| `prod` | Produktion, hier werden die echten Bewertungen gesammelt | Streamlit Cloud, App "cooler-ai" | Turso `cooler-ai-prod` |
+| `test` | Testumgebung | Streamlit Cloud, App "cooler-ai-test" | Turso `cooler-ai-test` |
+| `main` | Produktion, hier werden die echten Bewertungen gesammelt | Streamlit Cloud, App "cooler-ai" | Turso `cooler-ai-prod` |
 
-**Auf Prod deployen:** GitHub → Actions → "Deploy Prod" → "Run workflow". Der Workflow (`.github/workflows/deploy-prod.yml`) lässt `pytest` auf `main` laufen und setzt `prod` dann auf denselben Stand. Die Streamlit Cloud merkt das und deployt neu. Erst deployen, wenn der Stand auf der Testumgebung geprüft wurde.
+**Auf die Testumgebung:** Pull Request `dev` → `test` mergen. Die Streamlit Cloud deployt automatisch.
 
-Auf `prod` nie direkt pushen. Wurde `prod` trotzdem verändert, bricht der Workflow ab, weil er nur vorwärts schiebt (Fast-Forward).
+**Auf Prod deployen:** Erst wenn der Stand auf der Testumgebung geprüft wurde: Pull Request `test` → `main` erstellen und mergen. Das Mergen ist der manuelle Schritt. Danach deployt die Streamlit Cloud automatisch.
+
+Bei jedem Pull Request auf `dev`, `test` und `main` läuft `pytest` automatisch (`.github/workflows/tests.yml`). Nur mergen, wenn der Lauf grün ist.
+
+Auf `test` und `main` nie direkt pushen, immer per Pull Request. Auch Änderungen, die direkt in GitHub oder in der Streamlit Cloud entstehen (z.B. Codespaces), gehen zuerst auf `dev`.
 
 ## Warum Turso
 
@@ -56,8 +59,8 @@ turso db tokens create cooler-ai-prod
 ### 2. Streamlit Community Cloud
 
 1. Auf <https://share.streamlit.io> mit GitHub anmelden. Wer das Repo verwaltet, gibt der Streamlit-App Zugriff darauf.
-2. App "Test" erstellen: Repository `FHNWjanwolf/Cooler-AI`, Branch `main`, Datei `cooler_ai.py`.
-3. App "Prod" erstellen: gleich, aber Branch `prod`.
+2. App "Test" erstellen: Repository `FHNWjanwolf/Cooler-AI`, Branch `test`, Datei `cooler_ai.py`, URL z.B. `cooler-ai-test`.
+3. App "Prod" erstellen: gleich, aber Branch `main`, URL z.B. `cooler-ai`.
 4. Bei jeder App unter "Advanced settings" → "Secrets" die passende Datenbank eintragen:
 
    ```toml
@@ -65,15 +68,19 @@ turso db tokens create cooler-ai-prod
    TURSO_AUTH_TOKEN = "..."
    ```
 
+   Pro App nur das eigene Paar eintragen: Test-App die Werte von `cooler-ai-test`, Prod-App die von `cooler-ai-prod`. Stehen beide Paare im selben Feld, meldet Streamlit "Invalid format: please enter valid TOML" (doppelte Namen).
+
    Streamlit stellt Secrets auf oberster Ebene auch als Umgebungsvariablen bereit. Deshalb braucht `app/datenbank.py` kein Streamlit.
 
 ### 3. GitHub
 
-Für `prod` eine Regel anlegen (Settings → Rules → Rulesets) mit nur zwei Einstellungen: "Restrict deletions" und "Block force pushes". Pull Requests dort nicht verlangen, sonst kann auch der Workflow nicht mehr schieben. Dass niemand direkt auf `prod` pusht, ist eine Abmachung im Team.
+Für `test` und `main` eine Regel anlegen (Settings → Rules → Rulesets → New branch ruleset):
 
-Den Branch `prod` gibt es erst nach dem ersten Lauf von "Deploy Prod". Also: Workflow einmal laufen lassen (sobald er auf `main` liegt), dann die Prod-App in der Streamlit Cloud anlegen.
+- "Restrict deletions" und "Block force pushes"
+- "Require a pull request before merging", bei `main` mit mindestens einer Freigabe
+- "Require status checks to pass" mit dem Check `pytest`
 
-Für `main` und `dev`: Änderungen nur per Pull Request mit Review.
+Für `dev`: Änderungen nur per Pull Request mit Review (gleiche Regel ohne Pflicht-Freigabe genügt).
 
 ## Lokal mit einer Cloud-Datenbank arbeiten
 
