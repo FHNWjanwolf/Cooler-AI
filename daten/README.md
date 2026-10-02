@@ -6,4 +6,4 @@ Keine gescrapten Daten von Betty Bossi, Migusto oder Fooby. Quelle und Lizenz je
 
 | Rezepte | Quelle | Lizenz |
 |---|---|---|
-| die ersten 18 | selbst geschrieben (Grundgerüst) | eigene |
+| die ersten 18 | selbst geschrieben (Grundgerüst) | eigene | test
