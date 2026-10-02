@@ -6,7 +6,7 @@ Die Daten liegen an drei Orten, je nach Art:
 |---|---|---|
 | `wissensbasis/cooler_ai.ttl` (OWL) | Zutaten, Kategorien, Eigenschaften, Ersatzregeln | selten, per Pull Request |
 | `daten/rezepte.json` | Rezepte mit Zutaten | selten, per Pull Request |
-| `cooler_ai.db` (SQLite, lokal) | Vorrat, Bewertungen | laufend, wird nicht eingecheckt |
+| `cooler_ai.db` (SQLite, lokal) bzw. Turso (Test/Prod) | Vorrat, Bewertungen | laufend, wird nicht eingecheckt |
 
 Verbunden sind sie über die **Zutat-ID** (lokaler Name der OWL-Klasse, z.B. `Cherrytomate`) und die **Rezept-ID** (z.B. `spaghetti_carbonara`).
 
@@ -52,6 +52,8 @@ Ausschnitt; vollständig in `wissensbasis/cooler_ai.ttl`, Erklärung in `docs/wi
 `zutat` darf auch eine Kategorie sein (`Teigwaren`), dann passt jede Unterart. `vegetarisch` wird nicht eingetragen, sondern aus der Ontologie abgeleitet.
 
 ## SQLite
+
+Lokal eine Datei `cooler_ai.db`, in der Test- und Produktionsumgebung eine Turso-Datenbank (SQLite in der Cloud, gleiches Schema). Siehe `docs/deployment.md`.
 
 ```mermaid
 erDiagram

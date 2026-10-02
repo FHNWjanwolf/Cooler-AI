@@ -19,9 +19,11 @@ Reine Mengen- oder Regellogik ("Rezepte mit den meisten vorhandenen Zutaten") z�
 
 - Team: 3 Personen. A = UI und Vorrat (`app/`), B = Wissensbasis und Rezeptdaten (`wissensbasis/`, `daten/`), C = ML und Evaluation (`ml/`).
 - Vorrat wird manuell erfasst. Kein Kassenzettel-OCR, keine Kühlschrank-Fotoerkennung.
-- Stack: Python, Streamlit, SQLite, scikit-learn, rdflib. Doku in Markdown.
+- Stack: Python, Streamlit, SQLite (lokal Datei, Test/Prod über Turso), scikit-learn, rdflib. Doku in Markdown.
+- Deployment: Streamlit Community Cloud. `main` = Testumgebung (automatisch), `prod` = Produktion (nur über den Workflow "Deploy Prod"). Branches: `feature/...` → `dev` → `main` → `prod`. Details: `docs/deployment.md`.
+- ML-Modell wird nicht als Datei gespeichert, sondern beim App-Start aus den Bewertungen trainiert.
 - Wissensbasis als OWL-Ontologie (`wissensbasis/cooler_ai.ttl`, Turtle, rdflib + SPARQL, kein Reasoner). Getrennt von Code und Nutzerdaten. Noch von der Lehrperson zu bestätigen.
-- Rezepte in `daten/rezepte.json`, Vorrat und Bewertungen in SQLite. Verknüpfung über Zutat-ID (lokaler Name der OWL-Klasse).
+- Rezepte in `daten/rezepte.json`, Vorrat und Bewertungen in SQLite bzw. Turso. Verknüpfung über Zutat-ID (lokaler Name der OWL-Klasse).
 - Vorerst nur Vorhandensein prüfen, keine Mengen.
 - Kein Scraping von Betty Bossi, Migusto oder Fooby. Offene Datensätze (z.B. Food.com, RecipeNLG) oder eigene Sammlung.
 
@@ -58,11 +60,11 @@ Vorrat erfassen → SQLite → Wissensbasis (filtert, ersetzt, begründet) → M
 
 - Grundgerüst läuft durchgehend: `streamlit run cooler_ai.py` (Seiten Vorrat und Vorschläge), `pytest`, `python -m ml.trainiere`.
 - Ontologie mit ca. 65 Klassen und 10 Ersatzregeln, 18 selbst geschriebene Rezepte.
-- Ranking: regelbasierte Baseline, logistische Regression sobald trainiert (ab 20 Bewertungen).
+- Ranking: regelbasierte Baseline, logistische Regression ab 20 Bewertungen (beim App-Start trainiert).
 - Offene Aufgaben pro Person: `docs/fahrplan.md`.
 
 ## Arbeitsweise
 
-- Pro Aufgabe ein Branch (`feature/...`), Pull Request, Review durch eine andere Person. Vor dem Pull Request `pytest` laufen lassen.
-- Lokale DB (`cooler_ai.db`) und `ml/modell.joblib` nicht einchecken.
+- Pro Aufgabe ein Branch (`feature/...`) von `dev`, Pull Request auf `dev`, Review durch eine andere Person. Vor dem Pull Request `pytest` laufen lassen.
+- Lokale DB (`cooler_ai.db`) und Secrets (`.streamlit/secrets.toml`) nicht einchecken.
 - Code so schreiben, dass die Studierenden ihn nachvollziehen und erklären können: lieber einfach und kommentiert als clever.

@@ -6,8 +6,8 @@ Ablauf: Vorrat laden -> Wissensbasis filtert geeignete Rezepte -> Ranking sortie
 import streamlit as st
 
 from app.datenbank import lade_vorrat, speichere_bewertung, vorrat_als_liste
-from app.ressourcen import verbindung, wissensbasis
-from ml.ranking import lade_modell, sortiere
+from app.ressourcen import ml_modell, verbindung, wissensbasis
+from ml.ranking import sortiere
 from wissensbasis.eignung import finde_kandidaten, lade_rezepte
 
 conn = verbindung()
@@ -66,10 +66,10 @@ kandidaten = [
     if (k["vegetarisch"] or not nur_vegetarisch) and k["rezept"]["kochzeit_min"] <= max_kochzeit
 ]
 
-modell = lade_modell()
+modell = ml_modell()
 sortiert = sortiere(kandidaten, modell)
 if modell is None:
-    st.caption("Sortierung: regelbasiert (noch kein ML-Modell trainiert).")
+    st.caption("Sortierung: regelbasiert (noch zu wenig Bewertungen für das ML-Modell).")
 else:
     st.caption("Sortierung: ML-Modell, gelernt aus euren Bewertungen.")
 
