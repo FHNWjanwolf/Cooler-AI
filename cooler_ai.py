@@ -6,7 +6,7 @@ import streamlit as st
 
 from app.datenbank import normalisiere_person
 
-st.set_page_config(page_title="Cooler AI", page_icon="🥕")
+st.set_page_config(page_title="Cooler AI", page_icon="🥕", layout="wide")
 
 
 def anmelden():
@@ -25,6 +25,7 @@ def anmelden():
             name = st.text_input("Dein Name", placeholder="z.B. Yann")
             if st.form_submit_button("Weiter", type="primary") and normalisiere_person(name):
                 st.session_state.person = normalisiere_person(name)
+                st.session_state.zur_startseite = True
                 st.rerun()
         st.caption("Jede Person sieht nur ihren eigenen Vorrat. Gib immer denselben Namen ein.")
         st.stop()
@@ -41,7 +42,10 @@ def anmelden():
 anmelden()
 
 seiten = st.navigation([
-    st.Page("app/vorschlaege.py", title="Was koche ich heute?", icon="🍳", default=True),
+    st.Page("app/startseite.py", title="Startseite", icon="🏠", default=True),
     st.Page("app/vorrat.py", title="Vorrat", icon="🥕"),
+    st.Page("app/vorschlaege.py", title="Menüvorschläge", icon="🍳"),
 ])
+if st.session_state.pop("zur_startseite", False):
+    st.switch_page("app/startseite.py")
 seiten.run()

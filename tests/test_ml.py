@@ -45,6 +45,20 @@ def test_training_lernt_vorliebe():
     assert quote == 1.0  # alle Teigwaren-Rezepte landen oben
 
 
+def test_gekocht_zaehlt_staerker_als_widersprechender_daumen():
+    wb = Wissensbasis()
+    rezepte = lade_rezepte()
+    vorrat = [{"zutat": z, "tage": 10} for z in ["Kartoffel", "Rahm", "Milch"]]
+    bewertungen = [
+        {"rezept_id": "kartoffelgratin", "note": 1, "gekocht": False, "vorrat": vorrat},
+        {"rezept_id": "kartoffelgratin", "note": 5, "gekocht": True, "vorrat": vorrat},
+    ]
+    X, y, gewichte = erstelle_datensatz(bewertungen, rezepte, wb, mit_gewichten=True)
+    assert y == [0, 1] and gewichte == [1, 3]
+    modell = trainiere(bewertungen, rezepte, wb)
+    assert modell.predict_proba(X)[0, 1] > 0.7
+
+
 def fast(fehlt, rezept_id, dringend=(), kategorie="Gemuese"):
     """Hilfsfunktion: ein fast geeignetes Rezept, wie es die Wissensbasis liefert."""
     kandidat = {"rezept": {"id": rezept_id}, "dringend": list(dringend),

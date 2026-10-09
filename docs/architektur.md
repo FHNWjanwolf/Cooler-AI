@@ -8,7 +8,7 @@ flowchart TD
     B --> C[Wissensbasis: filtert, ersetzt, begründet<br>wissensbasis/eignung.py]
     C --> D[Ranking: sortiert Kandidaten<br>ml/ranking.py]
     D --> E[Top 3 mit Begründung<br>app/vorschlaege.py]
-    E --> F[Bewertung 1–5 + Vorrat-Snapshot]
+    E --> F[Daumen hoch/runter + Vorrat-Snapshot]
     E --> K[Gekocht: Bewertung + Vorrat abbauen]
     F --> B
     K --> B
@@ -52,7 +52,7 @@ flowchart TD
 
 ## Gekocht
 
-Der Knopf "Gekocht" auf der Vorschlagsseite öffnet einen Dialog: Die verwendeten Vorratsartikel sind vorausgewählt, wer Reste hat, wählt sie ab. Gespeichert werden eine Bewertung mit `gekocht = 1` (Snapshot = Vorrat vor dem Kochen) und das Entfernen der aufgebrauchten Einträge (`app/datenbank.py: koche`). Mengen werden nicht verrechnet (Entscheid "nur Vorhandensein").
+Der Knopf "Gekocht" öffnet einen Dialog mit vorgeschlagenen, bearbeitbaren Verbrauchsmengen. Gespeichert werden eine Bewertung von 1–5 mit `gekocht = 1` (Snapshot = Vorrat vor dem Kochen) und der Mengenabzug (`app/datenbank.py: koche`). Restmengen bleiben erhalten. Die Rezeptauswahl prüft weiterhin nur das Vorhandensein der Zutaten.
 
 ## Einkaufsideen
 
@@ -73,7 +73,7 @@ Auch hier gilt: Die Wissensbasis entscheidet, welche Einkäufe in Frage kommen, 
 
 - **Aufgabe**: Pointwise Learning to Rank. Die logistische Regression schätzt pro Rezept und Vorratssituation die Wahrscheinlichkeit einer guten Bewertung (Note ≥ 4) und sortiert danach.
 - **Merkmale**: Situation (Dringlichkeit, Abdeckung, Anzahl Ersetzungen) und Rezept (Kochzeit, enthaltene Kategorien). Die Kategorie-Merkmale kommen aus der Ontologie und erlauben es dem Modell, Vorlieben zu lernen, die keine Regel abbildet (z.B. "mag Teigwaren, mag keinen Fisch").
-- **Labels**: Bewertungen aus der App (Note ≥ 4 = gut), auch die aus dem "Gekocht"-Dialog. Ob `gekocht` stärker gewichtet werden soll, ist noch offen (siehe Fahrplan). Die Merkmale werden beim Training aus dem gespeicherten Vorrat-Snapshot neu berechnet.
+- **Labels**: Bewertungen aus der App (Note ≥ 4 = gut), auch die aus dem "Gekocht"-Dialog. Vorab-Rückmeldungen (Daumen hoch/runter) zählen mit Trainingsgewicht 1, Bewertungen nach dem Kochen mit Gewicht 3. Die Merkmale werden beim Training aus dem gespeicherten Vorrat-Snapshot neu berechnet.
 - **Evaluation**: zeitlicher Split 80/20, Metrik Top-3-Trefferquote, immer im Vergleich zur Baseline (`python -m ml.trainiere`).
 
 ## Entscheide
@@ -83,3 +83,9 @@ Auch hier gilt: Die Wissensbasis entscheidet, welche Einkäufe in Frage kommen, 
 - [x] Nur Vorhandensein prüfen, Mengen werden gespeichert, aber noch nicht abgeglichen.
 - [x] Vorrat und Bewertungen pro Person (Feld `person`). Anmeldung nur mit Namen, ohne Passwort. Das Modell lernt vorerst aus allen Bewertungen gemeinsam.
 - [ ] Eigene Bewertungen reichen oder zusätzlich öffentliche Daten (Food.com Interactions)?
+
+## Startseite und gemeinsame Ansichten
+
+Nach der Anmeldung öffnet `app/startseite.py` die Übersicht: eigener Vorrat links, Menüvorschläge und Einkaufsideen rechts. «Vorrat anpassen» führt zur bestehenden Vorratsseite. `app/rezeptansicht.py` rendert die Menüs auf Start- und Vorschlagsseite; `app/einkauf.py` zeigt die Einkaufsideen auf Start- und Vorratsseite.
+
+Ein Einkaufsvorschlag enthält die Menge für das bestplatzierte freigeschaltete Rezept, die übliche Einheit und ein Ablaufdatum aus der Wissensbasis. «In den Vorrat übernehmen» fügt diese Werte für die angemeldete Person hinzu und lädt die Übersicht neu. Die übrigen freigeschalteten Rezepte werden als Alternativen angezeigt; ihre Mengen werden nicht summiert.

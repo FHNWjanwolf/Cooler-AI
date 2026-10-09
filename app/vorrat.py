@@ -5,34 +5,9 @@ import pandas as pd
 import streamlit as st
 
 from app.datenbank import aktualisiere, fuege_hinzu, lade_vorrat, loesche, vorrat_als_liste
-from app.ressourcen import ml_modell, verbindung, wissensbasis
-from ml.ranking import einkaufsideen
-from wissensbasis.eignung import fast_geeignete, lade_rezepte
-
-
-def zeige_einkaufsideen(vorrat_liste):
-    """Welche eine Zutat würde die meisten passenden Rezepte freischalten?"""
-    st.subheader("Einkaufsideen")
-    modell = ml_modell()
-    ideen = einkaufsideen(fast_geeignete(lade_rezepte(), vorrat_liste, wb), wb, modell)
-    if not ideen:
-        st.caption("Gerade fehlt keinem passenden Rezept genau eine Zutat.")
-        return
-
-    for idee in ideen[:3]:
-        rezepte = idee["rezepte"]
-        anzahl = "1 Rezept" if len(rezepte) == 1 else f"{len(rezepte)} Rezepte"
-        with st.container(border=True):
-            st.markdown(f"**{wb.namen[idee['zutat']]}** kaufen → {anzahl}: "
-                        + ", ".join(r["rezept"]["titel"] for r in rezepte))
-            if idee["gerettet"]:
-                st.caption("Verwertet, was bald abläuft: " + ", ".join(wb.namen[z] for z in idee["gerettet"]))
-
-    if modell is None:
-        st.caption("Sortiert nach Anzahl Rezepte und geretteten Zutaten. "
-                   "Sobald es genug Bewertungen gibt, zählen auch eure Vorlieben (ML-Modell).")
-    else:
-        st.caption("Sortiert nach euren Vorlieben (ML-Modell) und geretteten Zutaten.")
+from app.ressourcen import verbindung, wissensbasis
+from app.einkauf import zeige_einkaufsideen
+from app.rezeptansicht import zeige_meldung
 
 
 def status(tage):
@@ -48,6 +23,7 @@ def status(tage):
 
 
 st.title("Vorrat")
+zeige_meldung()
 conn = verbindung()
 wb = wissensbasis()
 person = st.session_state.person  # gesetzt in cooler_ai.py
