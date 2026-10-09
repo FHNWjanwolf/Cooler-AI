@@ -90,3 +90,44 @@ def test_kaufmenge_unbekannt_und_hierarchie():
     assert kaufmenge(idee, wb) == (150, "ml")
     idee["rezepte"][0]["rezept"]["zutaten"][0]["menge"] = None
     assert kaufmenge(idee, wb) == (None, "ml")
+
+
+def test_zutat_zeigt_passende_einheit_und_abweichende_einheit_wird_gespeichert(app_db):
+    at = startseite()
+    at.switch_page("app/vorrat.py").run()
+    for zutat, einheit in [("Ei", "Stück"), ("Vollrahm", "ml"), ("Brokkoli", "g")]:
+        at.selectbox(key="erfassen_zutat").select(zutat).run()
+        assert not at.exception
+        assert at.selectbox(key=f"erfassen_einheit_{zutat}").value == einheit
+    at.selectbox(key="erfassen_einheit_Brokkoli").select("kg")
+    at.number_input[0].set_value(0.8)
+    next(b for b in at.button if b.label == "Hinzufügen").click().run()
+    assert not at.exception
+    brokkoli = lade_vorrat(app_db, "anna", Wissensbasis()).iloc[0]
+    assert brokkoli["zutat"] == "Brokkoli"
+    assert brokkoli["menge"] == 0.8 and brokkoli["einheit"] == "kg"
+    assert any("0.8 kg" in s.value for s in at.success)
+    at.switch_page("app/startseite.py").run()
+    assert any("0.8 kg" in m.value for m in at.markdown)
+
+
+def test_einheit_und_menge_im_editor_anpassen(app_db, monkeypatch):
+    import streamlit as st
+
+    # AppTest unterstützt das Bearbeiten von data_editor noch nicht. Die
+    # bearbeiteten Zellen simulieren, dann den echten Speichern-Ablauf prüfen.
+    def bearbeiteter_vorrat(df, **optionen):
+        assert "einheit" not in optionen["disabled"]
+        assert "kg" in optionen["column_config"]["einheit"]["type_config"]["options"]
+        df = df.copy()
+        df.loc[df.index[0], ["menge", "einheit"]] = [0.8, "kg"]
+        return df
+
+    monkeypatch.setattr(st, "data_editor", bearbeiteter_vorrat)
+    fuege_hinzu(app_db, "anna", "Brokkoli", 800, "g", None)
+    at = startseite()
+    at.switch_page("app/vorrat.py").run()
+    next(b for b in at.button if b.label == "Änderungen speichern").click().run()
+    assert not at.exception
+    brokkoli = lade_vorrat(app_db, "anna", Wissensbasis()).iloc[0]
+    assert brokkoli["menge"] == 0.8 and brokkoli["einheit"] == "kg"
