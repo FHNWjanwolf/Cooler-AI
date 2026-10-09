@@ -55,5 +55,5 @@ flowchart TD
 - [x] Wissensbasis als OWL-Ontologie (Turtle, rdflib), getrennt von Code und Nutzerdaten. Noch mit Lehrperson bestätigen.
 - [x] Rezepte als JSON-Datei, nicht in der Ontologie (Menge und Struktur passen besser in eine einfache Datei).
 - [x] Nur Vorhandensein prüfen, Mengen werden gespeichert, aber noch nicht abgeglichen.
-- [ ] Bewertungen pro Person erfassen (Feld `person`)?
+- [x] Vorrat und Bewertungen pro Person (Feld `person`). Anmeldung nur mit Namen, ohne Passwort. Das Modell lernt vorerst aus allen Bewertungen gemeinsam.
 - [ ] Eigene Bewertungen reichen oder zusätzlich öffentliche Daten (Food.com Interactions)?

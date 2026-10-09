@@ -12,6 +12,7 @@ from wissensbasis.eignung import finde_kandidaten, lade_rezepte
 
 conn = verbindung()
 wb = wissensbasis()
+person = st.session_state.person  # gesetzt in cooler_ai.py
 
 
 def zutaten_text(rezept):
@@ -45,13 +46,13 @@ def zeige_rezept(kandidat, vorrat):
             note = st.select_slider("Wie gerne würdest du das heute kochen?",
                                     options=[1, 2, 3, 4, 5], value=3)
             if st.form_submit_button("Bewertung speichern"):
-                speichere_bewertung(conn, rezept["id"], note, vorrat)
+                speichere_bewertung(conn, person, rezept["id"], note, vorrat)
                 st.success("Danke! Die Bewertung fliesst ins nächste Training ein.")
 
 
 st.title("Was koche ich heute?")
 
-vorrat_df = lade_vorrat(conn, wb)
+vorrat_df = lade_vorrat(conn, person, wb)
 if vorrat_df.empty:
     st.info("Der Vorrat ist leer. Erfasse zuerst unter «Vorrat», was du zu Hause hast.")
     st.stop()
