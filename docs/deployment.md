@@ -25,6 +25,31 @@ Bei jedem Pull Request auf `dev`, `test` und `main` läuft `pytest` automatisch 
 
 Auf `test` und `main` nie direkt pushen, immer per Pull Request. Auch Änderungen, die direkt in GitHub oder in der Streamlit Cloud entstehen (z.B. Codespaces), gehen zuerst auf `dev`.
 
+### Release: Mengenabzug nach dem Kochen
+
+Die Änderung benötigt keine neue Datenbankspalte und keine manuelle Migration.
+Bewertung und Verbrauch werden gemeinsam gespeichert. Restmengen bleiben erhalten;
+nur vollständig aufgebrauchte Einträge werden entfernt.
+
+1. PR `feature/gekocht-mengenabzug` → `dev` prüfen und nach grünem `pytest` mergen.
+2. PR `dev` → `test` mergen und den automatischen Streamlit-Deploy abwarten.
+3. Auf der Testumgebung mit einer eigenen Testperson prüfen:
+   - 800 g Kartoffeln, 200 ml Rahm und 200 ml Milch erfassen. Beim Kartoffelgratin
+     «Gekocht» wählen: Vorschlag 600 g Kartoffeln, danach 200 g Restbestand.
+   - Verbrauch auf 550 g ändern: Danach bleiben 250 g. Bei Verbrauch 0 bleibt
+     der Eintrag unverändert; bei vollständigem Verbrauch wird er entfernt.
+   - Zwei Kartoffelpackungen mit 300 g und 500 g und unterschiedlichen Ablaufdaten
+     erfassen: 600 g werden zuerst aus der älteren Packung abgezogen, 200 g bleiben.
+   - Bei unbekannter Vorratsmenge ist «vollständig aufgebraucht» zunächst abgewählt.
+     Ersatzprodukte und unterschiedliche Einheiten verlangen eine manuelle Verbrauchsmenge.
+   - Dialog mindestens 15 Sekunden offen lassen, dann speichern. Bewertung und
+     Verbrauch müssen weiterhin gespeichert werden.
+4. Nach erfolgreicher Prüfung PR `test` → `main` erstellen und mergen.
+
+Der Verbrauchsvorschlag gilt für die im Rezept angegebene Portionenzahl.
+Die Rezeptauswahl prüft weiterhin das Vorhandensein der Zutaten; ein Mengenmangel
+schliesst ein Rezept nicht aus. Der vorgeschlagene Abzug ist auf den Vorrat begrenzt.
+
 ## Warum Turso
 
 Die Streamlit Cloud behält keine Dateien: Bei jedem Neustart oder Deploy wäre eine lokale `cooler_ai.db` leer. In Prod sind die Bewertungen aber unsere Trainingsdaten. Turso ist SQLite in der Cloud (gleiches SQL, gleiches Schema), der Gratis-Plan reicht für das Projekt.

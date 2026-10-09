@@ -14,6 +14,7 @@ Jeder Vorratseintrag und jede Bewertung gehört einer Person (Spalte person, z.B
 Es gibt kein Passwort: Die Person gibt beim Öffnen der App ihren Namen ein (cooler_ai.py).
 """
 import json
+import math
 import os
 import sqlite3
 from datetime import date
@@ -173,14 +174,42 @@ def speichere_bewertung(conn, person, rezept_id, note, vorrat_snapshot, gekocht=
     conn.commit()
 
 
-def koche(conn, person, rezept_id, note, vorrat_snapshot, aufgebraucht_ids):
-    """Rezept wurde gekocht: Bewertung speichern und aufgebrauchte Vorratseinträge entfernen.
+def koche(conn, person, rezept_id, note, vorrat_snapshot, verbrauch):
+    """Verbrauch {Eintrag-ID: Menge} und Bewertung gemeinsam speichern.
 
     Der Snapshot ist der Vorrat VOR dem Kochen, damit das Training die Situation kennt.
+    None bedeutet ausdrücklich vollständig aufgebraucht (bei unbekannter Menge).
     """
-    speichere_bewertung(conn, person, rezept_id, note, vorrat_snapshot, gekocht=True)
-    for eintrag_id in aufgebraucht_ids:
-        loesche(conn, person, eintrag_id)
+    try:
+        for eintrag_id, menge in verbrauch.items():
+            if menge is None:
+                conn.execute("DELETE FROM vorratseintrag WHERE id = ? AND person = ?",
+                             (eintrag_id, person))
+                continue
+            if not math.isfinite(menge) or menge < 0:
+                raise ValueError("Die Verbrauchsmenge muss eine endliche, positive Zahl oder 0 sein.")
+            if menge == 0:
+                continue
+            # Mengenabzug direkt in SQL: Ein inzwischen geänderter Bestand wird nicht überschrieben.
+            cursor = conn.execute(
+                "UPDATE vorratseintrag SET menge = MAX(0, menge - ?) "
+                "WHERE id = ? AND person = ? AND menge >= ?",
+                (menge, eintrag_id, person, menge),
+            )
+            if cursor.rowcount != 1:
+                raise ValueError("Der Vorrat hat sich geändert. Bitte den Dialog neu öffnen und die Mengen prüfen.")
+            conn.execute("DELETE FROM vorratseintrag WHERE id = ? AND person = ? AND menge = 0",
+                         (eintrag_id, person))
+        conn.execute(
+            "INSERT INTO bewertung (person, rezept_id, datum, note, vorrat_snapshot, gekocht) "
+            "VALUES (?, ?, ?, ?, ?, 1)",
+            (person, rezept_id, date.today().isoformat(), note,
+             json.dumps(vorrat_snapshot, ensure_ascii=False)),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
 
 
 def lade_bewertungen(conn):

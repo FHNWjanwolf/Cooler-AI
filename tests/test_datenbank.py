@@ -81,7 +81,7 @@ def test_kochen_baut_vorrat_ab(conn):
     vorher = vorrat_als_liste(lade_vorrat(conn, "anna", wb))
     spinat_id = next(v["id"] for v in vorher if v["zutat"] == "Spinat")
 
-    koche(conn, "anna", "omelette_spinat_feta", 5, vorher, [spinat_id])  # Eier sind noch übrig
+    koche(conn, "anna", "omelette_spinat_feta", 5, vorher, {spinat_id: 200.0})  # Eier sind noch übrig
 
     assert list(lade_vorrat(conn, "anna", wb)["zutat"]) == ["Ei"]
     bewertung = lade_bewertungen(conn)[0]
@@ -103,3 +103,45 @@ def test_alte_datenbank_bekommt_spalte_gekocht(tmp_path, monkeypatch):
 
     conn = verbinde(pfad)
     assert lade_bewertungen(conn)[0]["gekocht"] is False
+
+
+def test_kochen_behaelt_restmenge_und_snapshot(conn):
+    wb = Wissensbasis()
+    fuege_hinzu(conn, "anna", "Kartoffel", 800.0, "g", date.today())
+    vorher = vorrat_als_liste(lade_vorrat(conn, "anna", wb))
+    koche(conn, "anna", "kartoffelgratin", 5, vorher, {vorher[0]["id"]: 600.0})
+    nachher = lade_vorrat(conn, "anna", wb)
+    assert nachher.iloc[0]["menge"] == 200.0
+    assert nachher.iloc[0]["ablaufdatum"] == date.today()
+    assert lade_bewertungen(conn)[0]["vorrat"] == vorher
+
+
+@pytest.mark.parametrize("ungueltig", [-1.0, float("nan"), float("inf"), 900.0])
+def test_ungueltiger_verbrauch_rollt_alles_zurueck(conn, ungueltig):
+    wb = Wissensbasis()
+    fuege_hinzu(conn, "anna", "Kartoffel", 800.0, "g", None)
+    fuege_hinzu(conn, "anna", "Rahm", 200.0, "ml", None)
+    vorher = vorrat_als_liste(lade_vorrat(conn, "anna", wb))
+    with pytest.raises(ValueError):
+        koche(conn, "anna", "test", 4, vorher,
+              {vorher[1]["id"]: 100.0, vorher[0]["id"]: ungueltig})
+    assert vorrat_als_liste(lade_vorrat(conn, "anna", wb)) == vorher
+    assert lade_bewertungen(conn) == []
+
+
+def test_kochen_fremder_vorrat_ist_geschuetzt(conn):
+    fuege_hinzu(conn, "ben", "Kartoffel", 800.0, "g", None)
+    vorher = vorrat_als_liste(lade_vorrat(conn, "ben", Wissensbasis()))
+    with pytest.raises(ValueError):
+        koche(conn, "anna", "test", 4, [], {vorher[0]["id"]: 600.0})
+    assert lade_vorrat(conn, "ben", Wissensbasis()).iloc[0]["menge"] == 800.0
+
+
+def test_kochen_null_und_unbekannte_mengen(conn):
+    wb = Wissensbasis()
+    fuege_hinzu(conn, "anna", "Kartoffel", 800.0, "g", None)
+    fuege_hinzu(conn, "anna", "Rahm", None, "ml", None)
+    vorher = vorrat_als_liste(lade_vorrat(conn, "anna", wb))
+    koche(conn, "anna", "test", 4, vorher,
+          {vorher[0]["id"]: 0.0, vorher[1]["id"]: None})
+    assert list(lade_vorrat(conn, "anna", wb)["menge"]) == [800.0]

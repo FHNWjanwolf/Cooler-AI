@@ -2,12 +2,13 @@
 
 Ablauf: Vorrat laden -> Wissensbasis filtert geeignete Rezepte -> Ranking sortiert
 -> Anzeige mit Begründung -> Bewertung wird mit Vorrat-Snapshot gespeichert (Trainingsdaten).
-Mit "Gekocht" werden die verwendeten Zutaten aus dem Vorrat entfernt.
+Mit "Gekocht" werden die verbrauchten Mengen vom Vorrat abgezogen.
 """
 import streamlit as st
 
 from app.datenbank import koche, lade_vorrat, speichere_bewertung, vorrat_als_liste
 from app.ressourcen import ml_modell, verbindung, wissensbasis
+from app.verbrauch import verbrauchsplan
 from ml.ranking import sortiere
 from wissensbasis.eignung import finde_kandidaten, lade_rezepte
 
@@ -30,26 +31,56 @@ def zutaten_text(rezept):
 
 @st.dialog("Guten Appetit!")
 def gekocht_dialog(kandidat, vorrat):
-    """Fragt, was aufgebraucht ist, speichert die Bewertung und baut den Vorrat ab."""
+    """Verbrauch prüfen, Bewertung speichern und Restmengen behalten."""
     rezept = kandidat["rezept"]
     st.markdown(f"**{rezept['titel']}**")
 
-    aufgebraucht = []
-    if kandidat["verwendet"]:
-        st.write("Welche Zutaten sind jetzt aufgebraucht? Abwählen, was noch übrig ist.")
-        for artikel in kandidat["verwendet"]:
-            if st.checkbox(wb.namen.get(artikel["zutat"], artikel["zutat"]), value=True,
-                           key=f"aufgebraucht_{rezept['id']}_{artikel['id']}"):
-                aufgebraucht.append(artikel["id"])
+    verbrauch = {}
+    plan = verbrauchsplan(rezept, vorrat, wb)
+    if plan:
+        st.write("Wie viel hast du verwendet? Prüfe die Rezeptmengen und passe sie bei Bedarf an. "
+                 "Mit 0 bleibt eine Zutat unverändert.")
+        for artikel in vorrat:
+            if artikel["id"] not in plan:
+                continue
+            name = wb.namen.get(artikel["zutat"], artikel["zutat"])
+            einheit = artikel["einheit"] or ""
+            menge = artikel["menge"]
+            vorschlag = plan[artikel["id"]]
+            key = f"verbrauch_{rezept['id']}_{artikel['id']}"
+            if menge is not None and menge >= 0:
+                if vorschlag is None:
+                    st.caption(f"{name}: Verbrauch bitte selbst eintragen (fehlende Mengen, "
+                               "unterschiedliche Einheiten oder Ersatzprodukt).")
+                verwendet = st.number_input(
+                    f"{name}: verwendet ({einheit})", min_value=0.0, max_value=float(menge),
+                    value=float(vorschlag or 0), key=key,
+                )
+                st.caption(f"Vorhanden: {menge:g} {einheit} · Übrig: {menge - verwendet:g} {einheit}")
+                verbrauch[artikel["id"]] = verwendet
+            else:
+                st.caption(f"{name}: Vorratsmenge unbekannt. Für einen Teilverbrauch zuerst "
+                           "die Menge unter «Vorrat» erfassen.")
+                if st.checkbox(f"{name} vollständig aufgebraucht", value=False, key=key):
+                    verbrauch[artikel["id"]] = None
     else:
         st.write("Das Rezept braucht nur Zutaten aus dem Grundstock.")
 
     note = st.select_slider("Wie hat es geschmeckt?", options=[1, 2, 3, 4, 5], value=4)
     if st.button("Speichern", type="primary"):
-        koche(conn, person, rezept["id"], note, vorrat, aufgebraucht)
-        meldung = f"{len(aufgebraucht)} Zutaten aus dem Vorrat entfernt."
-        if kandidat["dringend"]:
-            gerettet = ", ".join(wb.namen[z] for z in kandidat["dringend"])
+        try:
+            # Der Dialog kann länger offen sein als die Turso-Verbindung gültig ist.
+            koche(verbindung(), person, rezept["id"], note, vorrat, verbrauch)
+        except ValueError as fehler:
+            st.error(str(fehler))
+            return
+        anzahl = sum(m is None or m > 0 for m in verbrauch.values())
+        meldung = f"Verbrauch für {anzahl} Vorratseinträge gespeichert. Restmengen bleiben im Vorrat."
+        gerettete = [v["zutat"] for v in vorrat if v["zutat"] in kandidat["dringend"]
+                     and v["id"] in verbrauch
+                     and (verbrauch[v["id"]] is None or verbrauch[v["id"]] > 0)]
+        if gerettete:
+            gerettet = ", ".join(wb.namen[z] for z in dict.fromkeys(gerettete))
             meldung = f"Gerettet: {gerettet}! " + meldung
         st.session_state.meldung = meldung  # wird nach dem Neuladen oben angezeigt
         st.rerun()
@@ -78,7 +109,7 @@ def zeige_rezept(kandidat, vorrat):
                 st.success("Danke! Die Bewertung fliesst ins nächste Training ein.")
 
         if st.button("🍳 Gekocht", key=f"gekocht_{rezept['id']}",
-                     help="Bewertet das Rezept und entfernt die verwendeten Zutaten aus dem Vorrat."):
+                     help="Bewertet das Rezept und zieht die verbrauchten Mengen vom Vorrat ab."):
             gekocht_dialog(kandidat, vorrat)
 
 
