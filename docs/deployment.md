@@ -50,11 +50,10 @@ Der Verbrauchsvorschlag gilt für die im Rezept angegebene Portionenzahl.
 Die Rezeptauswahl prüft weiterhin das Vorhandensein der Zutaten; ein Mengenmangel
 schliesst ein Rezept nicht aus. Der vorgeschlagene Abzug ist auf den Vorrat begrenzt.
 
-## Vorbereitung: Startseite, Daumen und Einkauf übernehmen
+## Startseite, Daumen und Einkauf übernehmen
 
 Branch `feature/startseite-daumen-einkauf` → PR auf `dev`, danach wie oben
-über `test` nach `main`. Diese Vorbereitung deployt die Änderung noch nicht.
-Es gibt keine Schemaänderung und keine zusätzliche Migration.
+über `test` nach `main`. Es gibt keine Schemaänderung und keine zusätzliche Migration.
 
 Vor dem Prod-Rollout auf Test prüfen:
 
@@ -73,6 +72,23 @@ Vor dem Prod-Rollout auf Test prüfen:
   vorgeschlagene Menge reicht für das genannte Rezept und seine Portionenzahl;
   sie ist keine Summe für sämtliche freigeschalteten Rezepte. Unbekannte
   Rezeptmengen bleiben als offene Menge im Vorrat und lassen sich dort ergänzen.
+
+## Release: Sichtbare und bearbeitbare Einheiten
+
+Dieser Rollout umfasst auch die zuvor nur auf Dev veröffentlichten Änderungen
+an Startseite, Daumen-Rückmeldungen und Einkaufsideen. Keine Schemaänderung.
+
+Vor dem Prod-Rollout prüfen:
+
+- In «Vorrat» Brokkoli auswählen: Neben «Menge» ist «Einheit» mit g vorbelegt.
+  Auf kg wechseln, 0.8 eingeben und hinzufügen: 0.8 kg wird gespeichert und
+  auf der Startseite angezeigt. Eier schlagen Stück, Rahm ml vor.
+- In der Vorratstabelle Menge und Einheit gemeinsam anpassen und speichern,
+  z.B. 800 g auf 0.8 kg. Die Tabelle rechnet beim Bearbeiten nicht automatisch um.
+- «Gekocht» rechnet vergleichbare Einheiten weiterhin um. Wird die Einheit in
+  einem anderen Tab geändert, verlangt ein bereits offener Dialog eine neue Prüfung.
+- Die Anmeldung führt auf die Startseite; Daumen, Einkauf übernehmen und
+  der Mengenabzug funktionieren wie in der vorherigen Vorbereitung beschrieben.
 
 ## Warum Turso
 

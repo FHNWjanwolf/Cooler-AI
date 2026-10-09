@@ -82,6 +82,7 @@ erDiagram
 - **`person`**: Beim Öffnen der App gibt man seinen Namen ein (kein Passwort). Jede Person sieht nur ihren eigenen Vorrat. Bestehende Datenbanken bekommen die Spalte beim Start automatisch (`_ergaenze_spalte`); alte Einträge ohne Person sieht niemand mehr.
 
 - **Effektives Ablaufdatum** = früheres von Etikett und Öffnungsdatum + `haltbarOffenTage` (`Wissensbasis.effektives_ablaufdatum`).
+- **`VORRATSEINTRAG.einheit`**: Beim Erfassen wird die übliche Einheit aus der Ontologie vorgeschlagen. Sie lässt sich neben der Menge und später in der Vorratstabelle ändern (g, kg, ml, l, Stück bzw. ältere Stk-Einträge). Die eingegebene Menge gehört zur gewählten Einheit; in der Tabelle beide Werte gemeinsam anpassen. Beim Kochen werden vergleichbare Einheiten umgerechnet, inkompatible Einheiten verlangen eine manuelle Verbrauchsmenge.
 - **`BEWERTUNG.vorrat_snapshot`** speichert den Vorrat zum Zeitpunkt der Bewertung als JSON (Zutat, Menge, Einheit, Tage bis Ablauf). Ohne ihn lassen sich die Trainingsmerkmale nicht rekonstruieren.
 - **`BEWERTUNG.gekocht`** kam nachträglich dazu. `verbinde()` ergänzt die Spalte in bestehenden Datenbanken (Turso Test/Prod) automatisch.
 - **Vorab-Rückmeldung**: Daumen hoch wird als `note = 5`, Daumen runter als `note = 1`, jeweils mit `gekocht = 0` gespeichert. Die Werte dienen als positive/negative Labels; die Oberfläche zeigt keine Zahlenskala. Bestehende Vorab-Bewertungen bleiben verwendbar.
