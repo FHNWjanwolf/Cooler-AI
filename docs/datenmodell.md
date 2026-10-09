@@ -84,4 +84,6 @@ erDiagram
 - **Effektives Ablaufdatum** = früheres von Etikett und Öffnungsdatum + `haltbarOffenTage` (`Wissensbasis.effektives_ablaufdatum`).
 - **`BEWERTUNG.vorrat_snapshot`** speichert den Vorrat zum Zeitpunkt der Bewertung als JSON (Zutat, Menge, Einheit, Tage bis Ablauf). Ohne ihn lassen sich die Trainingsmerkmale nicht rekonstruieren.
 - **`BEWERTUNG.gekocht`** kam nachträglich dazu. `verbinde()` ergänzt die Spalte in bestehenden Datenbanken (Turso Test/Prod) automatisch.
+- **Vorab-Rückmeldung**: Daumen hoch wird als `note = 5`, Daumen runter als `note = 1`, jeweils mit `gekocht = 0` gespeichert. Die Werte dienen als positive/negative Labels; die Oberfläche zeigt keine Zahlenskala. Bestehende Vorab-Bewertungen bleiben verwendbar.
+- **Trainingsgewicht**: Vorab-Rückmeldungen zählen mit Gewicht 1, die 1–5-Bewertungen nach dem Kochen mit Gewicht 3. Der Snapshot und die übrigen Spalten bleiben unverändert; es ist keine neue Migration nötig.
 - Wird eine Zutat aus der Ontologie gelöscht, bleiben alte Vorratseinträge mit dieser ID stehen. Zutaten deshalb lieber umbenennen (`rdfs:label`) als die ID ändern.

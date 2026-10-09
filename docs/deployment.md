@@ -50,6 +50,30 @@ Der Verbrauchsvorschlag gilt für die im Rezept angegebene Portionenzahl.
 Die Rezeptauswahl prüft weiterhin das Vorhandensein der Zutaten; ein Mengenmangel
 schliesst ein Rezept nicht aus. Der vorgeschlagene Abzug ist auf den Vorrat begrenzt.
 
+## Vorbereitung: Startseite, Daumen und Einkauf übernehmen
+
+Branch `feature/startseite-daumen-einkauf` → PR auf `dev`, danach wie oben
+über `test` nach `main`. Diese Vorbereitung deployt die Änderung noch nicht.
+Es gibt keine Schemaänderung und keine zusätzliche Migration.
+
+Vor dem Prod-Rollout auf Test prüfen:
+
+- Mit einem Namen anmelden: Die Startseite zeigt links den eigenen Vorrat,
+  rechts Menüs und Einkaufsideen. «Vorrat anpassen» öffnet die bestehende Bearbeitung.
+- Mit leerem Vorrat und ohne passende Menüs bleiben die Navigation und die
+  Einkaufsideen sichtbar; nach Ergänzungen aktualisiert sich die Übersicht.
+- Bei einem Menü Daumen hoch oder runter anklicken: Rückmeldung wird ohne
+  weiteren Speichern-Knopf gespeichert. «Gekocht» behält die 1–5-Skala und
+  den Mengenabzug. Die Kochbewertung zählt im Training dreimal so stark.
+- Mit 200 g Spaghetti, 2 Eiern und 40 g Parmesan «100 g Speck» übernehmen:
+  Der Vorrat bekommt Menge, Einheit und vorgeschlagenes Ablaufdatum, danach
+  erscheint Spaghetti Carbonara als Menüvorschlag. Der Einkauf verändert
+  ausschliesslich den Vorrat der angemeldeten Person.
+- Einkaufsideen funktionieren auch weiterhin auf der Vorratsseite. Die
+  vorgeschlagene Menge reicht für das genannte Rezept und seine Portionenzahl;
+  sie ist keine Summe für sämtliche freigeschalteten Rezepte. Unbekannte
+  Rezeptmengen bleiben als offene Menge im Vorrat und lassen sich dort ergänzen.
+
 ## Warum Turso
 
 Die Streamlit Cloud behält keine Dateien: Bei jedem Neustart oder Deploy wäre eine lokale `cooler_ai.db` leer. In Prod sind die Bewertungen aber unsere Trainingsdaten. Turso ist SQLite in der Cloud (gleiches SQL, gleiches Schema), der Gratis-Plan reicht für das Projekt.

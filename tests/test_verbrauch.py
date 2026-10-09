@@ -58,12 +58,15 @@ def test_gekocht_dialog_speichert_teilverbrauch(tmp_path, monkeypatch):
     assert not at.exception
     # AppTest führt bei Änderungen einen ganzen Seitenlauf aus und unterstützt
     # Dialog-Fragmente noch nicht vollständig. Im Test den Dialog pro Lauf öffnen.
-    seite = str(Path(__file__).parents[1] / "app/vorschlaege.py")
-    at = AppTest.from_string(f"""
-import runpy
-seite = runpy.run_path({seite!r})
-kandidat = next(k for k in seite['sortiert'] if k['rezept']['id'] == 'kartoffelgratin')
-seite['gekocht_dialog'](kandidat, seite['vorrat'])
+    at = AppTest.from_string("""
+from app.rezeptansicht import gekocht_dialog
+from app.datenbank import lade_vorrat, vorrat_als_liste
+from app.ressourcen import verbindung, wissensbasis
+from wissensbasis.eignung import finde_kandidaten, lade_rezepte
+vorrat = vorrat_als_liste(lade_vorrat(verbindung(), 'anna', wissensbasis()))
+kandidat = next(k for k in finde_kandidaten(lade_rezepte(), vorrat, wissensbasis())
+                if k['rezept']['id'] == 'kartoffelgratin')
+gekocht_dialog(kandidat, vorrat)
 """)
     at.session_state.person = "anna"
     at.run()
