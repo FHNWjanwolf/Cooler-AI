@@ -18,7 +18,8 @@ Stand: Das Grundgerüst läuft durchgehend (Vorrat → Wissensbasis → Ranking 
 ## Person A – App
 
 - [ ] Mit echten Vorräten testen und Stolpersteine beheben (z.B. Menge beim Erfassen, schnelles Mehrfach-Erfassen).
-- [ ] Knopf "Gekocht" bei einem Rezept: verbrauchte Zutaten aus dem Vorrat entfernen.
+- [x] Knopf "Gekocht" bei einem Rezept: verbrauchte Zutaten aus dem Vorrat entfernen.
+- [x] Einkaufsideen auf der Vorratsseite (Wissensbasis findet Rezepte mit genau einer Lücke, ML gewichtet).
 - [ ] Anzeige, wie viele Bewertungen schon gesammelt sind (motiviert zur Datenerhebung).
 
 ## Person C – ML und Evaluation
@@ -26,6 +27,7 @@ Stand: Das Grundgerüst läuft durchgehend (Vorrat → Wissensbasis → Ranking 
 - [ ] **Datenerhebung ab Woche 3–4 starten**: alle drei bewerten regelmässig Vorschläge mit ihrem echten Vorrat. Ziel: 150+ Bewertungen bis zur ML-Phase. Auch die "weiteren Rezepte" bewerten, nicht nur die Top 3 (sonst lernt das Modell nur von dem, was die Baseline zeigt).
 - [ ] Ehrlich festhalten, nach welchen Kriterien bewertet wurde (persönliche Vorliebe, nicht "hat am meisten Zutaten"), sonst lernt das Modell nur die Regeln nach (Zirkularität).
 - [ ] Optional mehr Daten: Food.com Interactions (Kaggle) als zusätzliche Präferenzdaten prüfen. Aufwand: Zutaten auf die Ontologie-IDs abbilden.
+- [ ] Prüfen, ob "gekocht" ein besseres Signal ist als die Note allein (z.B. als `sample_weight` beim Training stärker gewichten und mit der Top-3-Trefferquote vergleichen).
 - [ ] Evaluation ausbauen: mehrere Splits, Vergleich mehrerer Modelle (z.B. Random Forest), Einfluss der Kategorie-Merkmale.
 - [ ] Ergebnisse in `docs/` festhalten (Tabelle Baseline vs. ML).
 

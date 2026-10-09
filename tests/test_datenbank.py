@@ -4,8 +4,8 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.datenbank import (fuege_hinzu, lade_bewertungen, lade_vorrat, loesche, normalisiere_person,
-                           speichere_bewertung, verbinde)
+from app.datenbank import (fuege_hinzu, koche, lade_bewertungen, lade_vorrat, loesche, normalisiere_person,
+                           speichere_bewertung, verbinde, vorrat_als_liste)
 from wissensbasis.wissen import Wissensbasis
 
 
@@ -47,7 +47,7 @@ def test_bewertung_speichern_und_laden(conn):
     speichere_bewertung(conn, "anna", "spaghetti_carbonara", 5, [{"zutat": "Ei", "tage": 3}])
     assert lade_bewertungen(conn) == [
         {"person": "anna", "rezept_id": "spaghetti_carbonara", "datum": date.today().isoformat(),
-         "note": 5, "vorrat": [{"zutat": "Ei", "tage": 3}]}
+         "note": 5, "vorrat": [{"zutat": "Ei", "tage": 3}], "gekocht": False}
     ]
 
 
@@ -72,3 +72,76 @@ def test_alte_datenbank_bekommt_spalte_person(tmp_path, monkeypatch):
     conn = verbinde(pfad)
     fuege_hinzu(conn, "anna", "Spinat", None, None, None)
     assert list(lade_vorrat(conn, "anna", Wissensbasis())["zutat"]) == ["Spinat"]  # alter Eintrag gehört niemandem
+
+
+def test_kochen_baut_vorrat_ab(conn):
+    wb = Wissensbasis()
+    fuege_hinzu(conn, "anna", "Spinat", 200.0, "g", date.today() + timedelta(days=1))
+    fuege_hinzu(conn, "anna", "Ei", 6.0, "Stück", None)
+    vorher = vorrat_als_liste(lade_vorrat(conn, "anna", wb))
+    spinat_id = next(v["id"] for v in vorher if v["zutat"] == "Spinat")
+
+    koche(conn, "anna", "omelette_spinat_feta", 5, vorher, {spinat_id: 200.0})  # Eier sind noch übrig
+
+    assert list(lade_vorrat(conn, "anna", wb)["zutat"]) == ["Ei"]
+    bewertung = lade_bewertungen(conn)[0]
+    assert bewertung["gekocht"] is True
+    assert len(bewertung["vorrat"]) == 2  # Snapshot zeigt den Vorrat VOR dem Kochen
+
+
+def test_alte_datenbank_bekommt_spalte_gekocht(tmp_path, monkeypatch):
+    """Test/Prod laufen auf bestehenden Turso-Datenbanken ohne die neue Spalte."""
+    monkeypatch.delenv("TURSO_DATABASE_URL", raising=False)
+    pfad = tmp_path / "alt.db"
+    alt = sqlite3.connect(pfad)
+    alt.execute("CREATE TABLE bewertung (id INTEGER PRIMARY KEY, rezept_id TEXT NOT NULL, "
+                "datum TEXT NOT NULL, note INTEGER NOT NULL, vorrat_snapshot TEXT NOT NULL)")
+    alt.execute("INSERT INTO bewertung (rezept_id, datum, note, vorrat_snapshot) "
+                "VALUES ('caprese', '2026-10-01', 4, '[]')")
+    alt.commit()
+    alt.close()
+
+    conn = verbinde(pfad)
+    assert lade_bewertungen(conn)[0]["gekocht"] is False
+
+
+def test_kochen_behaelt_restmenge_und_snapshot(conn):
+    wb = Wissensbasis()
+    fuege_hinzu(conn, "anna", "Kartoffel", 800.0, "g", date.today())
+    vorher = vorrat_als_liste(lade_vorrat(conn, "anna", wb))
+    koche(conn, "anna", "kartoffelgratin", 5, vorher, {vorher[0]["id"]: 600.0})
+    nachher = lade_vorrat(conn, "anna", wb)
+    assert nachher.iloc[0]["menge"] == 200.0
+    assert nachher.iloc[0]["ablaufdatum"] == date.today()
+    assert lade_bewertungen(conn)[0]["vorrat"] == vorher
+
+
+@pytest.mark.parametrize("ungueltig", [-1.0, float("nan"), float("inf"), 900.0])
+def test_ungueltiger_verbrauch_rollt_alles_zurueck(conn, ungueltig):
+    wb = Wissensbasis()
+    fuege_hinzu(conn, "anna", "Kartoffel", 800.0, "g", None)
+    fuege_hinzu(conn, "anna", "Rahm", 200.0, "ml", None)
+    vorher = vorrat_als_liste(lade_vorrat(conn, "anna", wb))
+    with pytest.raises(ValueError):
+        koche(conn, "anna", "test", 4, vorher,
+              {vorher[1]["id"]: 100.0, vorher[0]["id"]: ungueltig})
+    assert vorrat_als_liste(lade_vorrat(conn, "anna", wb)) == vorher
+    assert lade_bewertungen(conn) == []
+
+
+def test_kochen_fremder_vorrat_ist_geschuetzt(conn):
+    fuege_hinzu(conn, "ben", "Kartoffel", 800.0, "g", None)
+    vorher = vorrat_als_liste(lade_vorrat(conn, "ben", Wissensbasis()))
+    with pytest.raises(ValueError):
+        koche(conn, "anna", "test", 4, [], {vorher[0]["id"]: 600.0})
+    assert lade_vorrat(conn, "ben", Wissensbasis()).iloc[0]["menge"] == 800.0
+
+
+def test_kochen_null_und_unbekannte_mengen(conn):
+    wb = Wissensbasis()
+    fuege_hinzu(conn, "anna", "Kartoffel", 800.0, "g", None)
+    fuege_hinzu(conn, "anna", "Rahm", None, "ml", None)
+    vorher = vorrat_als_liste(lade_vorrat(conn, "anna", wb))
+    koche(conn, "anna", "test", 4, vorher,
+          {vorher[0]["id"]: 0.0, vorher[1]["id"]: None})
+    assert list(lade_vorrat(conn, "anna", wb)["menge"]) == [800.0]

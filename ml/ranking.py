@@ -55,3 +55,48 @@ def gewichte(modell):
     namen = modell.named_steps["dictvectorizer"].get_feature_names_out()
     werte = modell.named_steps["logisticregression"].coef_[0]
     return sorted(zip(namen, werte), key=lambda x: abs(x[1]), reverse=True)
+
+
+# ---------------------------------------------------------------- Einkaufsideen
+
+NEUTRALE_VORLIEBE = 0.5   # ohne Modell zählt jedes Rezept gleich viel
+GEWICHT_RETTUNG = 0.5     # Bonus pro Zutat, die bald abläuft und dank des Einkaufs verwertet wird
+
+
+def einkaufsideen(fast_geeignete, wb, modell=None):
+    """Welche Zutat lohnt sich zu kaufen? Wichtigste zuerst.
+
+    Die Wissensbasis liefert die Rezepte, denen genau eine Zutat fehlt (fast_geeignete).
+    Hier wird nur noch gewichtet und sortiert:
+
+        Wert einer Zutat = Summe über alle Rezepte, die sie freischaltet, von
+                           Vorliebe (ML: Wahrscheinlichkeit einer guten Bewertung)
+                           + GEWICHT_RETTUNG * Anzahl verwerteter dringender Zutaten
+
+    Über die Hierarchie deckt ein Kauf auch allgemeinere Lücken ab:
+    Wer Vollrahm kauft, schaltet auch Rezepte frei, die nur "Rahm" verlangen.
+
+    Rückgabe: Liste von Dicts {"zutat", "wert", "rezepte" (beste zuerst), "gerettet" (IDs)}.
+    """
+    if not fast_geeignete:
+        return []
+    kandidaten = [f["kandidat"] for f in fast_geeignete]
+    if modell is None:
+        vorlieben = [NEUTRALE_VORLIEBE] * len(kandidaten)
+    else:
+        vorlieben = modell.predict_proba([k["merkmale"] for k in kandidaten])[:, 1]
+
+    ideen = []
+    for kauf in sorted({f["fehlt"] for f in fast_geeignete}):
+        rezepte, gerettet, wert = [], [], 0.0
+        for f, vorliebe in zip(fast_geeignete, vorlieben):
+            if not wb.ist_ein(kauf, f["fehlt"]):
+                continue  # dieser Kauf füllt die Lücke des Rezepts nicht
+            k = f["kandidat"]
+            wert += float(vorliebe) + GEWICHT_RETTUNG * len(k["dringend"])
+            rezepte.append({**k, "score": float(vorliebe)})
+            gerettet += [z for z in k["dringend"] if z not in gerettet]
+        rezepte.sort(key=lambda k: k["score"], reverse=True)
+        ideen.append({"zutat": kauf, "wert": wert, "rezepte": rezepte, "gerettet": gerettet})
+
+    return sorted(ideen, key=lambda i: i["wert"], reverse=True)
