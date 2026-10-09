@@ -1,19 +1,28 @@
 """Datenbankverbindung, Wissensbasis und ML-Modell, die sich alle Seiten teilen.
 
-st.cache_resource sorgt dafür, dass beides nur einmal erzeugt wird
-und nicht bei jedem Klick neu.
+st.cache_resource sorgt dafür, dass Wissensbasis und Modell nur einmal erzeugt werden
+und nicht bei jedem Klick neu. Die Datenbankverbindung dagegen wird bei jedem
+Seitenaufruf neu geöffnet, weil Turso unbenutzte Verbindungen nach ca. 10 Sekunden beendet.
 """
 import streamlit as st
 
-from app.datenbank import lade_bewertungen, verbinde
+from app.datenbank import lade_bewertungen, oeffne, richte_ein
 from ml.trainiere import trainiere_falls_moeglich
 from wissensbasis.eignung import lade_rezepte
 from wissensbasis.wissen import Wissensbasis
 
 
 @st.cache_resource
+def _datenbank_einrichten():
+    # Tabellen nur einmal pro App-Start prüfen, nicht bei jedem Klick.
+    richte_ein(oeffne())
+    return True
+
+
 def verbindung():
-    return verbinde()
+    """Frische Verbindung für den aktuellen Seitenaufruf."""
+    _datenbank_einrichten()
+    return oeffne()
 
 
 @st.cache_resource

@@ -34,6 +34,8 @@ Die Streamlit Cloud behält keine Dateien: Bei jedem Neustart oder Deploy wäre 
 - `TURSO_DATABASE_URL` gesetzt → Turso (Client `libsql`)
 - sonst → lokale Datei `cooler_ai.db` (sqlite3)
 
+Wichtig: Turso beendet eine Verbindung, die ca. 10 Sekunden nicht benutzt wird (Fehler `STREAM_EXPIRED`). Die App öffnet deshalb bei jedem Seitenaufruf eine neue Verbindung (`verbindung()` in `app/ressourcen.py`) und bewahrt sie nicht mit `st.cache_resource` auf.
+
 Das ML-Modell wird aus demselben Grund nicht als Datei gespeichert. Die App trainiert es beim Start und nach jeder neuen Bewertung aus den Bewertungen in der Datenbank (`app/ressourcen.py`).
 
 ## Einmalig einrichten
