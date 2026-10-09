@@ -9,7 +9,8 @@ from datetime import date
 
 import pytest
 
-from wissensbasis.eignung import finde_kandidaten, lade_rezepte, pruefe_rezept
+from wissensbasis.eignung import (fast_geeignete, fehlende_pflichtzutaten, finde_kandidaten, lade_rezepte,
+                                  pruefe_rezept)
 from wissensbasis.wissen import Wissensbasis
 
 
@@ -124,3 +125,36 @@ def test_vegetarisch_wird_aus_hierarchie_abgeleitet(wb, rezepte):
     assert not ergebnisse["spaghetti_carbonara"]["vegetarisch"]
     assert ergebnisse["linsen_chili"]["vegetarisch"]
     assert "spaghetti_carbonara" in nach_id
+
+
+def test_verwendete_artikel_werden_zurueckgegeben(wb):
+    rahm = {"id": 1, "zutat": "Vollrahm", "tage": 2}
+    karotte = {"id": 2, "zutat": "Karotte", "tage": 10}
+    # Rahm deckt Rahm direkt und Milch per Ersatzregel ab, soll aber nur einmal aufgebraucht werden
+    ergebnis = pruefe_rezept(rezept(("Rahm", True), ("Milch", True)), [rahm, karotte], wb)
+    assert ergebnis["verwendet"] == [rahm]
+    assert ergebnis["dringend"] == ["Vollrahm"]
+
+
+# ------------------------------------------------------------ Einkaufsideen (fast geeignete Rezepte)
+
+def test_fehlende_pflichtzutaten(wb):
+    r = rezept(("Karotte", True), ("Lauch", True), ("Feta", False), ("Salz", True))
+    assert fehlende_pflichtzutaten(r, [{"zutat": "Karotte", "tage": 5}], wb) == ["Lauch"]
+    # Ersetzbare Zutaten fehlen nicht: Lauch ersetzt Zwiebel
+    r = rezept(("Zwiebel", True))
+    assert fehlende_pflichtzutaten(r, [{"zutat": "Lauch", "tage": 5}], wb) == []
+
+
+def test_fast_geeignet_bei_genau_einer_luecke(wb):
+    rezepte = [
+        {**rezept(("Karotte", True), ("Lauch", True)), "id": "eine_luecke"},
+        {**rezept(("Karotte", True), ("Lauch", True), ("Poulet", True)), "id": "zwei_luecken"},
+        {**rezept(("Lachs", True)), "id": "nichts_aus_dem_vorrat"},
+        {**rezept(("Karotte", True)), "id": "schon_geeignet"},
+    ]
+    vorrat = [{"zutat": "Karotte", "tage": 1}]
+    ergebnis = fast_geeignete(rezepte, vorrat, wb)
+    assert [(f["fehlt"], f["kandidat"]["rezept"]["id"]) for f in ergebnis] == [("Lauch", "eine_luecke")]
+    # Die Karotte im Vorrat wird gerettet, der gekaufte Lauch zählt nicht als dringend
+    assert ergebnis[0]["kandidat"]["dringend"] == ["Karotte"]

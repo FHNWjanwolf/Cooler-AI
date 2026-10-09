@@ -115,11 +115,19 @@ def pruefe_rezept(rezept, vorrat, wb):
                 if k != "Zutat":
                     merkmale[f"enthaelt_{k}"] = 1
 
+    # Jeder Vorratsartikel nur einmal (er kann mehrere Rezeptzutaten abdecken, z.B. Rahm für Rahm und Milch)
+    verwendet_eindeutig = []
+    for v in verwendet:
+        if v not in verwendet_eindeutig:
+            verwendet_eindeutig.append(v)
+
     return {
         "rezept": rezept,
         "vegetarisch": vegetarisch,
         "begruendungen": begruendungen,
         "fehlend_optional": fehlend_optional,
+        "verwendet": verwendet_eindeutig,   # Vorratsartikel, die beim Kochen aufgebraucht werden
+        "dringend": dringend,               # IDs der verwerteten Zutaten, die bald ablaufen
         "merkmale": merkmale,
     }
 
@@ -128,3 +136,43 @@ def finde_kandidaten(rezepte, vorrat, wb):
     """Alle geeigneten Rezepte (unsortiert)."""
     ergebnisse = (pruefe_rezept(r, vorrat, wb) for r in rezepte)
     return [e for e in ergebnisse if e is not None]
+
+
+# ---------------------------------------------------------------- Einkaufsideen
+
+def fehlende_pflichtzutaten(rezept, vorrat, wb):
+    """Pflichtzutaten, die weder im Vorrat liegen noch ersetzbar sind (IDs)."""
+    fehlend = []
+    for e in rezept["zutaten"]:
+        z = e["zutat"]
+        if not e["pflicht"] or wb.ist_grundstock(z):
+            continue
+        if _finde_im_vorrat(vorrat, z, wb) is None and _finde_ersatz(vorrat, z, wb) is None:
+            fehlend.append(z)
+    return fehlend
+
+
+def fast_geeignete(rezepte, vorrat, wb):
+    """Rezepte, denen genau EINE Pflichtzutat fehlt: Was würde ein Einkauf freischalten?
+
+    Für jedes solche Rezept wird so getan, als wäre die fehlende Zutat frisch gekauft,
+    und die normale Eignungsprüfung läuft nochmals. So bekommt man Begründungen und
+    ML-Merkmale wie bei einem geeigneten Rezept.
+    Rezepte, die gar nichts aus dem Vorrat verwenden, werden weggelassen (keine Resteverwertung).
+
+    Rückgabe: Liste von Dicts {"fehlt": <ID>, "kandidat": <Prüfergebnis>}.
+    """
+    ergebnis = []
+    for rezept in rezepte:
+        fehlend = fehlende_pflichtzutaten(rezept, vorrat, wb)
+        if len(fehlend) != 1:
+            continue
+        fehlt = fehlend[0]
+        gekauft = {"zutat": fehlt, "tage": None}  # frisch gekauft, zählt nie als dringend
+        kandidat = pruefe_rezept(rezept, vorrat + [gekauft], wb)
+        if kandidat is None:
+            continue
+        aus_vorrat = [v for v in kandidat["verwendet"] if v is not gekauft]
+        if aus_vorrat:
+            ergebnis.append({"fehlt": fehlt, "kandidat": kandidat})
+    return ergebnis
