@@ -6,7 +6,7 @@ Stand: Das Grundgerüst läuft durchgehend (Vorrat → Wissensbasis → Ranking 
 
 - [ ] **Lehrperson fragen**: Ist OWL als Wissensbasis in Ordnung bzw. erwünscht? Reicht eine logistische Regression als ML-Komponente, wenn sie gegen eine Baseline evaluiert wird?
 - [ ] **Datenmodell im Team bestätigen** (`docs/datenmodell.md`), besonders: Rezepte als JSON, nur Vorhandensein statt Mengen.
-- [ ] Entscheiden, ob Bewertungen pro Person gespeichert werden (Feld `person`). Wenn ja: jetzt einbauen, nicht erst nach der Datenerhebung.
+- [x] Bewertungen pro Person speichern (Feld `person`): ja, eingebaut. Anmeldung nur mit Namen, jede Person sieht ihren eigenen Vorrat.
 
 ## Person B – Wissensbasis und Rezepte
 

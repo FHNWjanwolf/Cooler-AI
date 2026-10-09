@@ -59,6 +59,7 @@ Lokal eine Datei `cooler_ai.db`, in der Test- und Produktionsumgebung eine Turso
 erDiagram
   VORRATSEINTRAG {
     int id PK
+    string person "Name, klein geschrieben"
     string zutat "ID aus der Ontologie"
     float menge
     string einheit
@@ -67,6 +68,7 @@ erDiagram
   }
   BEWERTUNG {
     int id PK
+    string person "Name, klein geschrieben"
     string rezept_id "ID aus rezepte.json"
     date datum
     int note "1 bis 5"
@@ -76,6 +78,8 @@ erDiagram
 ```
 
 ## Hinweise
+
+- **`person`**: Beim Öffnen der App gibt man seinen Namen ein (kein Passwort). Jede Person sieht nur ihren eigenen Vorrat. Bestehende Datenbanken bekommen die Spalte beim Start automatisch (`_ergaenze_spalte`); alte Einträge ohne Person sieht niemand mehr.
 
 - **Effektives Ablaufdatum** = früheres von Etikett und Öffnungsdatum + `haltbarOffenTage` (`Wissensbasis.effektives_ablaufdatum`).
 - **`BEWERTUNG.vorrat_snapshot`** speichert den Vorrat zum Zeitpunkt der Bewertung als JSON (Zutat, Menge, Einheit, Tage bis Ablauf). Ohne ihn lassen sich die Trainingsmerkmale nicht rekonstruieren.

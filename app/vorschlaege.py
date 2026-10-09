@@ -13,6 +13,7 @@ from wissensbasis.eignung import finde_kandidaten, lade_rezepte
 
 conn = verbindung()
 wb = wissensbasis()
+person = st.session_state.person  # gesetzt in cooler_ai.py
 
 
 def zutaten_text(rezept):
@@ -45,7 +46,7 @@ def gekocht_dialog(kandidat, vorrat):
 
     note = st.select_slider("Wie hat es geschmeckt?", options=[1, 2, 3, 4, 5], value=4)
     if st.button("Speichern", type="primary"):
-        koche(conn, rezept["id"], note, vorrat, aufgebraucht)
+        koche(conn, person, rezept["id"], note, vorrat, aufgebraucht)
         meldung = f"{len(aufgebraucht)} Zutaten aus dem Vorrat entfernt."
         if kandidat["dringend"]:
             gerettet = ", ".join(wb.namen[z] for z in kandidat["dringend"])
@@ -73,7 +74,7 @@ def zeige_rezept(kandidat, vorrat):
             note = st.select_slider("Wie gerne würdest du das heute kochen?",
                                     options=[1, 2, 3, 4, 5], value=3)
             if st.form_submit_button("Bewertung speichern"):
-                speichere_bewertung(conn, rezept["id"], note, vorrat)
+                speichere_bewertung(conn, person, rezept["id"], note, vorrat)
                 st.success("Danke! Die Bewertung fliesst ins nächste Training ein.")
 
         if st.button("🍳 Gekocht", key=f"gekocht_{rezept['id']}",
@@ -85,7 +86,7 @@ st.title("Was koche ich heute?")
 if "meldung" in st.session_state:
     st.success(st.session_state.pop("meldung"), icon="🎉")
 
-vorrat_df = lade_vorrat(conn, wb)
+vorrat_df = lade_vorrat(conn, person, wb)
 if vorrat_df.empty:
     st.info("Der Vorrat ist leer. Erfasse zuerst unter «Vorrat», was du zu Hause hast.")
     st.stop()

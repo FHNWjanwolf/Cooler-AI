@@ -9,6 +9,9 @@ Zwei Varianten, gleiches SQL:
 Das Fachwissen über Zutaten (Kategorien, Haltbarkeit, Ersatzregeln) liegt NICHT hier,
 sondern in der Ontologie (wissensbasis/cooler_ai.ttl). In der Datenbank steht nur
 die Zutat-ID, z.B. "Cherrytomate".
+
+Jeder Vorratseintrag und jede Bewertung gehört einer Person (Spalte person, z.B. "yann").
+Es gibt kein Passwort: Die Person gibt beim Öffnen der App ihren Namen ein (cooler_ai.py).
 """
 import json
 import os
@@ -23,6 +26,7 @@ DB_PFAD = Path(__file__).parent.parent / "cooler_ai.db"
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS vorratseintrag (
     id INTEGER PRIMARY KEY,
+    person TEXT,                  -- Name der Person, klein geschrieben
     zutat TEXT NOT NULL,          -- ID aus der Ontologie
     menge REAL,
     einheit TEXT,
@@ -31,6 +35,7 @@ CREATE TABLE IF NOT EXISTS vorratseintrag (
 );
 CREATE TABLE IF NOT EXISTS bewertung (
     id INTEGER PRIMARY KEY,
+    person TEXT,                  -- Name der Person, klein geschrieben
     rezept_id TEXT NOT NULL,
     datum TEXT NOT NULL,
     note INTEGER NOT NULL,        -- 1 (passt gar nicht) bis 5 (passt perfekt)
@@ -40,16 +45,33 @@ CREATE TABLE IF NOT EXISTS bewertung (
 """
 
 
-def verbinde(pfad=DB_PFAD):
+def oeffne(pfad=DB_PFAD):
+    """Neue Verbindung, ohne die Tabellen zu prüfen.
+
+    Achtung Turso: Eine Verbindung, die ca. 10 Sekunden nicht benutzt wird, beendet der
+    Server ("stream has expired due to inactivity"). Verbindungen deshalb nicht lange
+    aufbewahren, sondern pro Seitenaufruf neu öffnen (siehe app/ressourcen.py).
+    """
     url = os.environ.get("TURSO_DATABASE_URL")
     if url:
         import libsql  # nur nötig, wenn Turso benutzt wird
 
-        conn = libsql.connect(url, auth_token=os.environ.get("TURSO_AUTH_TOKEN", ""))
-    else:
-        conn = sqlite3.connect(pfad, check_same_thread=False)
+        return libsql.connect(url, auth_token=os.environ.get("TURSO_AUTH_TOKEN", ""))
+    return sqlite3.connect(pfad, check_same_thread=False)
+
+
+def richte_ein(conn):
+    """Legt fehlende Tabellen und Spalten an."""
     conn.executescript(SCHEMA)
+    _ergaenze_spalte(conn, "vorratseintrag", "person", "TEXT")
+    _ergaenze_spalte(conn, "bewertung", "person", "TEXT")
     _ergaenze_spalte(conn, "bewertung", "gekocht", "INTEGER DEFAULT 0")
+
+
+def verbinde(pfad=DB_PFAD):
+    """Neue Verbindung mit eingerichteten Tabellen (für Skripte und Tests)."""
+    conn = oeffne(pfad)
+    richte_ein(conn)
     return conn
 
 
@@ -65,9 +87,14 @@ def _ergaenze_spalte(conn, tabelle, spalte, typ):
         conn.commit()
 
 
-def _als_dataframe(conn, sql):
+def normalisiere_person(name):
+    """Gleiche Person, gleicher Schlüssel: " Yann " und "yann" sind dieselbe Person."""
+    return name.strip().lower()
+
+
+def _als_dataframe(conn, sql, parameter=()):
     """Abfrage als DataFrame. (pd.read_sql kennt nur sqlite3, nicht den Turso-Client.)"""
-    cursor = conn.execute(sql)
+    cursor = conn.execute(sql, parameter)
     spalten = [d[0] for d in cursor.description]
     return pd.DataFrame(cursor.fetchall(), columns=spalten)
 
@@ -82,10 +109,10 @@ def _als_datum(text):
 
 # ---------------------------------------------------------------- Vorrat
 
-def lade_vorrat(conn, wb, heute=None):
-    """Vorrat als DataFrame, inkl. Tage bis zum effektiven Ablaufdatum, dringendste zuerst."""
+def lade_vorrat(conn, person, wb, heute=None):
+    """Vorrat einer Person als DataFrame, inkl. Tage bis zum effektiven Ablaufdatum, dringendste zuerst."""
     heute = heute or date.today()
-    df = _als_dataframe(conn, "SELECT * FROM vorratseintrag")
+    df = _als_dataframe(conn, "SELECT * FROM vorratseintrag WHERE person = ?", (person,))
     df["ablaufdatum"] = [_als_datum(d) for d in df["ablaufdatum"]]
     df["geoeffnet_am"] = [_als_datum(d) for d in df["geoeffnet_am"]]
     df["name"] = [wb.namen.get(z, z) for z in df["zutat"]]
@@ -111,54 +138,61 @@ def vorrat_als_liste(df):
     ]
 
 
-def fuege_hinzu(conn, zutat, menge, einheit, ablaufdatum):
+def fuege_hinzu(conn, person, zutat, menge, einheit, ablaufdatum):
     conn.execute(
-        "INSERT INTO vorratseintrag (zutat, menge, einheit, ablaufdatum) VALUES (?, ?, ?, ?)",
-        (zutat, menge, einheit, _iso(ablaufdatum)),
+        "INSERT INTO vorratseintrag (person, zutat, menge, einheit, ablaufdatum) VALUES (?, ?, ?, ?, ?)",
+        (person, zutat, menge, einheit, _iso(ablaufdatum)),
     )
     conn.commit()
 
 
-def aktualisiere(conn, eintrag_id, menge, ablaufdatum, geoeffnet_am):
+# Bei Ändern und Löschen wird zusätzlich die Person geprüft,
+# damit niemand versehentlich einen fremden Eintrag verändert.
+
+def aktualisiere(conn, person, eintrag_id, menge, ablaufdatum, geoeffnet_am):
     conn.execute(
-        "UPDATE vorratseintrag SET menge = ?, ablaufdatum = ?, geoeffnet_am = ? WHERE id = ?",
-        (menge, _iso(ablaufdatum), _iso(geoeffnet_am), eintrag_id),
+        "UPDATE vorratseintrag SET menge = ?, ablaufdatum = ?, geoeffnet_am = ? WHERE id = ? AND person = ?",
+        (menge, _iso(ablaufdatum), _iso(geoeffnet_am), eintrag_id, person),
     )
     conn.commit()
 
 
-def loesche(conn, eintrag_id):
-    conn.execute("DELETE FROM vorratseintrag WHERE id = ?", (eintrag_id,))
+def loesche(conn, person, eintrag_id):
+    conn.execute("DELETE FROM vorratseintrag WHERE id = ? AND person = ?", (eintrag_id, person))
     conn.commit()
 
 
 # ---------------------------------------------------------------- Bewertungen
 
-def speichere_bewertung(conn, rezept_id, note, vorrat_snapshot, gekocht=False):
+def speichere_bewertung(conn, person, rezept_id, note, vorrat_snapshot, gekocht=False):
     conn.execute(
-        "INSERT INTO bewertung (rezept_id, datum, note, vorrat_snapshot, gekocht) VALUES (?, ?, ?, ?, ?)",
-        (rezept_id, date.today().isoformat(), note, json.dumps(vorrat_snapshot, ensure_ascii=False),
+        "INSERT INTO bewertung (person, rezept_id, datum, note, vorrat_snapshot, gekocht) VALUES (?, ?, ?, ?, ?, ?)",
+        (person, rezept_id, date.today().isoformat(), note, json.dumps(vorrat_snapshot, ensure_ascii=False),
          int(gekocht)),
     )
     conn.commit()
 
 
-def koche(conn, rezept_id, note, vorrat_snapshot, aufgebraucht_ids):
+def koche(conn, person, rezept_id, note, vorrat_snapshot, aufgebraucht_ids):
     """Rezept wurde gekocht: Bewertung speichern und aufgebrauchte Vorratseinträge entfernen.
 
     Der Snapshot ist der Vorrat VOR dem Kochen, damit das Training die Situation kennt.
     """
-    speichere_bewertung(conn, rezept_id, note, vorrat_snapshot, gekocht=True)
+    speichere_bewertung(conn, person, rezept_id, note, vorrat_snapshot, gekocht=True)
     for eintrag_id in aufgebraucht_ids:
-        loesche(conn, eintrag_id)
+        loesche(conn, person, eintrag_id)
 
 
 def lade_bewertungen(conn):
-    """Alle Bewertungen, älteste zuerst, mit ausgepacktem Snapshot."""
+    """Alle Bewertungen aller Personen, älteste zuerst, mit ausgepacktem Snapshot.
+
+    Das Modell lernt vorerst aus allen Bewertungen gemeinsam. Über das Feld "person"
+    lässt sich später pro Person auswerten oder trainieren.
+    """
     zeilen = conn.execute(
-        "SELECT rezept_id, datum, note, vorrat_snapshot, gekocht FROM bewertung ORDER BY datum, id"
+        "SELECT person, rezept_id, datum, note, vorrat_snapshot, gekocht FROM bewertung ORDER BY datum, id"
     ).fetchall()
     return [
-        {"rezept_id": r, "datum": d, "note": n, "vorrat": json.loads(s), "gekocht": bool(g)}
-        for r, d, n, s, g in zeilen
+        {"person": p, "rezept_id": r, "datum": d, "note": n, "vorrat": json.loads(s), "gekocht": bool(g)}
+        for p, r, d, n, s, g in zeilen
     ]

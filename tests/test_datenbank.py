@@ -4,8 +4,8 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.datenbank import (fuege_hinzu, koche, lade_bewertungen, lade_vorrat, speichere_bewertung,
-                           verbinde, vorrat_als_liste)
+from app.datenbank import (fuege_hinzu, koche, lade_bewertungen, lade_vorrat, loesche, normalisiere_person,
+                           speichere_bewertung, verbinde, vorrat_als_liste)
 from wissensbasis.wissen import Wissensbasis
 
 
@@ -21,33 +21,69 @@ def conn(request, tmp_path, monkeypatch):
 
 def test_vorrat_speichern_und_laden(conn):
     wb = Wissensbasis()
-    assert lade_vorrat(conn, wb).empty
+    assert lade_vorrat(conn, "anna", wb).empty
     heute = date.today()
-    fuege_hinzu(conn, "Spinat", 200.0, "g", heute + timedelta(days=2))
-    fuege_hinzu(conn, "Ei", 6.0, "Stk", None)
-    df = lade_vorrat(conn, wb)
+    fuege_hinzu(conn, "anna", "Spinat", 200.0, "g", heute + timedelta(days=2))
+    fuege_hinzu(conn, "anna", "Ei", 6.0, "Stk", None)
+    df = lade_vorrat(conn, "anna", wb)
     assert list(df["zutat"]) == ["Spinat", "Ei"]  # dringendste zuerst
     assert df["tage"].iloc[0] == 2
 
 
+def test_jede_person_sieht_nur_ihren_vorrat(conn):
+    wb = Wissensbasis()
+    fuege_hinzu(conn, "anna", "Spinat", 200.0, "g", None)
+    fuege_hinzu(conn, "ben", "Ei", 6.0, "Stk", None)
+    assert list(lade_vorrat(conn, "anna", wb)["zutat"]) == ["Spinat"]
+    assert list(lade_vorrat(conn, "ben", wb)["zutat"]) == ["Ei"]
+
+    # Ben kann Annas Eintrag nicht löschen
+    annas_id = int(lade_vorrat(conn, "anna", wb).index[0])
+    loesche(conn, "ben", annas_id)
+    assert len(lade_vorrat(conn, "anna", wb)) == 1
+
+
 def test_bewertung_speichern_und_laden(conn):
-    speichere_bewertung(conn, "spaghetti_carbonara", 5, [{"zutat": "Ei", "tage": 3}])
+    speichere_bewertung(conn, "anna", "spaghetti_carbonara", 5, [{"zutat": "Ei", "tage": 3}])
     assert lade_bewertungen(conn) == [
-        {"rezept_id": "spaghetti_carbonara", "datum": date.today().isoformat(), "note": 5,
-         "vorrat": [{"zutat": "Ei", "tage": 3}], "gekocht": False}
+        {"person": "anna", "rezept_id": "spaghetti_carbonara", "datum": date.today().isoformat(),
+         "note": 5, "vorrat": [{"zutat": "Ei", "tage": 3}], "gekocht": False}
     ]
+
+
+def test_name_wird_vereinheitlicht():
+    assert normalisiere_person("  Yann ") == "yann"
+
+
+def test_alte_datenbank_bekommt_spalte_person(tmp_path, monkeypatch):
+    """Datenbanken von vor der Einführung der Personen (z.B. auf Turso) werden ergänzt."""
+    monkeypatch.delenv("TURSO_DATABASE_URL", raising=False)
+    pfad = tmp_path / "alt.db"
+    alt = sqlite3.connect(pfad)
+    alt.executescript("""
+        CREATE TABLE vorratseintrag (id INTEGER PRIMARY KEY, zutat TEXT NOT NULL, menge REAL,
+                                     einheit TEXT, ablaufdatum TEXT, geoeffnet_am TEXT);
+        CREATE TABLE bewertung (id INTEGER PRIMARY KEY, rezept_id TEXT NOT NULL, datum TEXT NOT NULL,
+                                note INTEGER NOT NULL, vorrat_snapshot TEXT NOT NULL);
+        INSERT INTO vorratseintrag (zutat) VALUES ('Ei');
+    """)
+    alt.close()
+
+    conn = verbinde(pfad)
+    fuege_hinzu(conn, "anna", "Spinat", None, None, None)
+    assert list(lade_vorrat(conn, "anna", Wissensbasis())["zutat"]) == ["Spinat"]  # alter Eintrag gehört niemandem
 
 
 def test_kochen_baut_vorrat_ab(conn):
     wb = Wissensbasis()
-    fuege_hinzu(conn, "Spinat", 200.0, "g", date.today() + timedelta(days=1))
-    fuege_hinzu(conn, "Ei", 6.0, "Stück", None)
-    vorher = vorrat_als_liste(lade_vorrat(conn, wb))
+    fuege_hinzu(conn, "anna", "Spinat", 200.0, "g", date.today() + timedelta(days=1))
+    fuege_hinzu(conn, "anna", "Ei", 6.0, "Stück", None)
+    vorher = vorrat_als_liste(lade_vorrat(conn, "anna", wb))
     spinat_id = next(v["id"] for v in vorher if v["zutat"] == "Spinat")
 
-    koche(conn, "omelette_spinat_feta", 5, vorher, [spinat_id])  # Eier sind noch übrig
+    koche(conn, "anna", "omelette_spinat_feta", 5, vorher, [spinat_id])  # Eier sind noch übrig
 
-    assert list(lade_vorrat(conn, wb)["zutat"]) == ["Ei"]
+    assert list(lade_vorrat(conn, "anna", wb)["zutat"]) == ["Ei"]
     bewertung = lade_bewertungen(conn)[0]
     assert bewertung["gekocht"] is True
     assert len(bewertung["vorrat"]) == 2  # Snapshot zeigt den Vorrat VOR dem Kochen

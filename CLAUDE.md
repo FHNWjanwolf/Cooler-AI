@@ -24,6 +24,7 @@ Reine Mengen- oder Regellogik ("Rezepte mit den meisten vorhandenen Zutaten") z�
 - ML-Modell wird nicht als Datei gespeichert, sondern beim App-Start aus den Bewertungen trainiert.
 - Wissensbasis als OWL-Ontologie (`wissensbasis/cooler_ai.ttl`, Turtle, rdflib + SPARQL, kein Reasoner). Getrennt von Code und Nutzerdaten. Noch von der Lehrperson zu bestätigen.
 - Rezepte in `daten/rezepte.json`, Vorrat und Bewertungen in SQLite bzw. Turso. Verknüpfung über Zutat-ID (lokaler Name der OWL-Klasse).
+- Vorrat und Bewertungen pro Person (Spalte `person`, Name klein geschrieben). Anmeldung nur mit Namen, kein Passwort (trennt Daten, schützt sie nicht). Modell vorerst gemeinsam für alle; ob pro Person trainiert wird, entscheidet Person C.
 - Vorerst nur Vorhandensein prüfen, keine Mengen.
 - Kein Scraping von Betty Bossi, Migusto oder Fooby. Offene Datensätze (z.B. Food.com, RecipeNLG) oder eigene Sammlung.
 
@@ -46,7 +47,6 @@ Vorrat erfassen → SQLite → Wissensbasis (filtert, ersetzt, begründet) → M
 ## Offene Entscheide (nicht eigenmächtig festlegen, nachfragen)
 
 - Muss ein eigenes Modell trainiert werden oder reicht ein vortrainiertes (z.B. Sentence-Transformers fürs Zutaten-Matching)?
-- Bewertungen pro Person erfassen (Feld `person` in BEWERTUNG)?
 - Rolle von Nährwerten (Kalorien/Protein): höchstens einfacher Filter, nicht Kernfunktion.
 
 ## Bekannte Risiken
