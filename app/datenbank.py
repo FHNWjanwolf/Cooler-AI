@@ -44,17 +44,32 @@ CREATE TABLE IF NOT EXISTS bewertung (
 """
 
 
-def verbinde(pfad=DB_PFAD):
+def oeffne(pfad=DB_PFAD):
+    """Neue Verbindung, ohne die Tabellen zu prüfen.
+
+    Achtung Turso: Eine Verbindung, die ca. 10 Sekunden nicht benutzt wird, beendet der
+    Server ("stream has expired due to inactivity"). Verbindungen deshalb nicht lange
+    aufbewahren, sondern pro Seitenaufruf neu öffnen (siehe app/ressourcen.py).
+    """
     url = os.environ.get("TURSO_DATABASE_URL")
     if url:
         import libsql  # nur nötig, wenn Turso benutzt wird
 
-        conn = libsql.connect(url, auth_token=os.environ.get("TURSO_AUTH_TOKEN", ""))
-    else:
-        conn = sqlite3.connect(pfad, check_same_thread=False)
+        return libsql.connect(url, auth_token=os.environ.get("TURSO_AUTH_TOKEN", ""))
+    return sqlite3.connect(pfad, check_same_thread=False)
+
+
+def richte_ein(conn):
+    """Legt fehlende Tabellen und Spalten an."""
     conn.executescript(SCHEMA)
     _ergaenze_spalte(conn, "vorratseintrag", "person", "TEXT")
     _ergaenze_spalte(conn, "bewertung", "person", "TEXT")
+
+
+def verbinde(pfad=DB_PFAD):
+    """Neue Verbindung mit eingerichteten Tabellen (für Skripte und Tests)."""
+    conn = oeffne(pfad)
+    richte_ein(conn)
     return conn
 
 
