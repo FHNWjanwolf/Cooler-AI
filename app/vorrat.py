@@ -5,34 +5,9 @@ import pandas as pd
 import streamlit as st
 
 from app.datenbank import aktualisiere, fuege_hinzu, lade_vorrat, loesche, vorrat_als_liste
-from app.ressourcen import ml_modell, verbindung, wissensbasis
-from ml.ranking import einkaufsideen
-from wissensbasis.eignung import fast_geeignete, lade_rezepte
-
-
-def zeige_einkaufsideen(vorrat_liste):
-    """Welche eine Zutat würde die meisten passenden Rezepte freischalten?"""
-    st.subheader("Einkaufsideen")
-    modell = ml_modell()
-    ideen = einkaufsideen(fast_geeignete(lade_rezepte(), vorrat_liste, wb), wb, modell)
-    if not ideen:
-        st.caption("Gerade fehlt keinem passenden Rezept genau eine Zutat.")
-        return
-
-    for idee in ideen[:3]:
-        rezepte = idee["rezepte"]
-        anzahl = "1 Rezept" if len(rezepte) == 1 else f"{len(rezepte)} Rezepte"
-        with st.container(border=True):
-            st.markdown(f"**{wb.namen[idee['zutat']]}** kaufen → {anzahl}: "
-                        + ", ".join(r["rezept"]["titel"] for r in rezepte))
-            if idee["gerettet"]:
-                st.caption("Verwertet, was bald abläuft: " + ", ".join(wb.namen[z] for z in idee["gerettet"]))
-
-    if modell is None:
-        st.caption("Sortiert nach Anzahl Rezepte und geretteten Zutaten. "
-                   "Sobald es genug Bewertungen gibt, zählen auch eure Vorlieben (ML-Modell).")
-    else:
-        st.caption("Sortiert nach euren Vorlieben (ML-Modell) und geretteten Zutaten.")
+from app.ressourcen import verbindung, wissensbasis
+from app.einkauf import zeige_einkaufsideen
+from app.rezeptansicht import zeige_meldung
 
 
 def status(tage):
@@ -48,26 +23,36 @@ def status(tage):
 
 
 st.title("Vorrat")
+zeige_meldung()
 conn = verbindung()
 wb = wissensbasis()
 person = st.session_state.person  # gesetzt in cooler_ai.py
 
+EINHEITEN = ["g", "kg", "ml", "l", "Stück", "Stk"]
+
+
+# Die Zutat steht ausserhalb des Formulars, damit ihre Auswahl die Einheit
+# bereits vor dem Speichern aktualisiert (Formulare sammeln Änderungen erst beim Submit).
+zutat = st.selectbox("Zutat", wb.zutaten_zur_auswahl(), format_func=wb.namen.get,
+                     index=None, placeholder="Tippen zum Suchen", key="erfassen_zutat")
+standard = wb.eigenschaft(zutat, "einheit") if zutat else "g"
 with st.form("erfassen", clear_on_submit=True):
-    c1, c2, c3 = st.columns([3, 1.5, 2])
-    zutat = c1.selectbox("Zutat", wb.zutaten_zur_auswahl(), format_func=wb.namen.get,
-                         index=None, placeholder="Tippen zum Suchen")
-    menge = c2.number_input("Menge", min_value=0.0, step=50.0, value=None)
+    c1, c2, c3 = st.columns([1.5, 1.5, 2])
+    menge = c1.number_input("Menge", min_value=0.0, step=1.0, value=None,
+                            help="Die Menge gilt in der rechts ausgewählten Einheit; auch Dezimalzahlen sind möglich.")
+    einheit = c2.selectbox("Einheit", EINHEITEN, index=EINHEITEN.index(standard),
+                          key=f"erfassen_einheit_{zutat}",
+                          help="Übliche Einheit der Zutat, bei Bedarf anpassen.")
     ablauf = c3.date_input("Ablaufdatum", value=None, format="DD.MM.YYYY",
                            help="Leer lassen, um die übliche Haltbarkeit zu übernehmen.")
     if st.form_submit_button("Hinzufügen", type="primary"):
         if zutat is None:
             st.warning("Wähle zuerst eine Zutat aus.")
         else:
-            einheit = wb.eigenschaft(zutat, "einheit")
             haltbar = wb.eigenschaft(zutat, "haltbarTage")
             if ablauf is None and haltbar is not None:
                 ablauf = date.today() + timedelta(days=haltbar)
-            fuege_hinzu(conn, person, zutat, menge, einheit, ablauf)
+            fuege_hinzu(verbindung(), person, zutat, menge, einheit, ablauf)
             menge_text = f"{menge:g} {einheit} " if menge else ""
             st.success(f"{menge_text}{wb.namen[zutat]} hinzugefügt.")
 
@@ -83,12 +68,15 @@ else:
         vorrat,
         hide_index=True,
         column_order=["status", "name", "menge", "einheit", "ablaufdatum", "geoeffnet_am", "aufgebraucht"],
-        disabled=["status", "name", "einheit"],
+        disabled=["status", "name"],
         column_config={
             "status": "Status",
             "name": "Zutat",
             "menge": st.column_config.NumberColumn("Menge", min_value=0),
-            "einheit": "Einheit",
+            "einheit": st.column_config.SelectboxColumn(
+                "Einheit", options=EINHEITEN, required=True,
+                help="Bei anderer Einheit auch die Menge anpassen (z.B. 500 g = 0.5 kg).",
+            ),
             "ablaufdatum": st.column_config.DateColumn("Ablaufdatum", format="DD.MM.YYYY"),
             "geoeffnet_am": st.column_config.DateColumn("Geöffnet am", format="DD.MM.YYYY"),
             "aufgebraucht": st.column_config.CheckboxColumn("Aufgebraucht"),
@@ -104,7 +92,8 @@ else:
                 loesche(conn, person, int(eintrag_id))
             else:
                 menge = float(r.menge) if pd.notna(r.menge) else None
-                aktualisiere(conn, person, int(eintrag_id), menge, r.ablaufdatum, r.geoeffnet_am)
+                aktualisiere(conn, person, int(eintrag_id), menge, r.ablaufdatum, r.geoeffnet_am,
+                             einheit=r.einheit)
         st.rerun()
 
     zeige_einkaufsideen(vorrat_als_liste(vorrat))

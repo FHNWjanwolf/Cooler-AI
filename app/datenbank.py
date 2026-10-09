@@ -150,10 +150,11 @@ def fuege_hinzu(conn, person, zutat, menge, einheit, ablaufdatum):
 # Bei Ändern und Löschen wird zusätzlich die Person geprüft,
 # damit niemand versehentlich einen fremden Eintrag verändert.
 
-def aktualisiere(conn, person, eintrag_id, menge, ablaufdatum, geoeffnet_am):
+def aktualisiere(conn, person, eintrag_id, menge, ablaufdatum, geoeffnet_am, einheit=None):
     conn.execute(
-        "UPDATE vorratseintrag SET menge = ?, ablaufdatum = ?, geoeffnet_am = ? WHERE id = ? AND person = ?",
-        (menge, _iso(ablaufdatum), _iso(geoeffnet_am), eintrag_id, person),
+        "UPDATE vorratseintrag SET menge = ?, ablaufdatum = ?, geoeffnet_am = ?, "
+        "einheit = COALESCE(?, einheit) WHERE id = ? AND person = ?",
+        (menge, _iso(ablaufdatum), _iso(geoeffnet_am), einheit, eintrag_id, person),
     )
     conn.commit()
 
@@ -180,6 +181,7 @@ def koche(conn, person, rezept_id, note, vorrat_snapshot, verbrauch):
     Der Snapshot ist der Vorrat VOR dem Kochen, damit das Training die Situation kennt.
     None bedeutet ausdrücklich vollständig aufgebraucht (bei unbekannter Menge).
     """
+    vorher = {v["id"]: v for v in vorrat_snapshot if "id" in v}
     try:
         for eintrag_id, menge in verbrauch.items():
             if menge is None:
@@ -193,8 +195,8 @@ def koche(conn, person, rezept_id, note, vorrat_snapshot, verbrauch):
             # Mengenabzug direkt in SQL: Ein inzwischen geänderter Bestand wird nicht überschrieben.
             cursor = conn.execute(
                 "UPDATE vorratseintrag SET menge = MAX(0, menge - ?) "
-                "WHERE id = ? AND person = ? AND menge >= ?",
-                (menge, eintrag_id, person, menge),
+                "WHERE id = ? AND person = ? AND menge >= ? AND einheit IS ?",
+                (menge, eintrag_id, person, menge, vorher.get(eintrag_id, {}).get("einheit")),
             )
             if cursor.rowcount != 1:
                 raise ValueError("Der Vorrat hat sich geändert. Bitte den Dialog neu öffnen und die Mengen prüfen.")
