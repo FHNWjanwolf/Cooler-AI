@@ -20,12 +20,14 @@ from wissensbasis.wissen import lade_wissensbasis
 
 MIN_BEWERTUNGEN = 20
 GUT_AB_NOTE = 4
+GEWICHT_VORAB = 1.0
+GEWICHT_GEKOCHT = 3.0
 
 
-def erstelle_datensatz(bewertungen, rezepte, wb):
-    """Merkmale (X) und Labels (y: 1 = gut bewertet) aus den Bewertungen."""
+def erstelle_datensatz(bewertungen, rezepte, wb, mit_gewichten=False):
+    """Merkmale und Labels; optional Gewichte für Vorab- und Kochbewertungen."""
     nach_id = {r["id"]: r for r in rezepte}
-    X, y = [], []
+    X, y, gewichte = [], [], []
     for b in bewertungen:
         rezept = nach_id.get(b["rezept_id"])
         if rezept is None:
@@ -35,15 +37,17 @@ def erstelle_datensatz(bewertungen, rezepte, wb):
             continue  # Wissensbasis wurde geändert, Rezept wäre heute nicht mehr geeignet
         X.append(pruefung["merkmale"])
         y.append(int(b["note"] >= GUT_AB_NOTE))
-    return X, y
+        gewichte.append(GEWICHT_GEKOCHT if b.get("gekocht", False) else GEWICHT_VORAB)
+    return (X, y, gewichte) if mit_gewichten else (X, y)
 
 
 def trainiere(bewertungen, rezepte, wb):
-    X, y = erstelle_datensatz(bewertungen, rezepte, wb)
+    X, y, gewichte = erstelle_datensatz(bewertungen, rezepte, wb, mit_gewichten=True)
     if len(set(y)) < 2:
         raise ValueError("Es braucht gute UND schlechte Bewertungen, sonst gibt es nichts zu lernen.")
     modell = neues_modell()
-    modell.fit(X, y)
+    modell.fit(X, y, standardscaler__sample_weight=gewichte,
+               logisticregression__sample_weight=gewichte)
     return modell
 
 

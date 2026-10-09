@@ -4,7 +4,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.datenbank import (fuege_hinzu, koche, lade_bewertungen, lade_vorrat, loesche, normalisiere_person,
+from app.datenbank import (aktualisiere, fuege_hinzu, koche, lade_bewertungen, lade_vorrat, loesche, normalisiere_person,
                            speichere_bewertung, verbinde, vorrat_als_liste)
 from wissensbasis.wissen import Wissensbasis
 
@@ -145,3 +145,27 @@ def test_kochen_null_und_unbekannte_mengen(conn):
     koche(conn, "anna", "test", 4, vorher,
           {vorher[0]["id"]: 0.0, vorher[1]["id"]: None})
     assert list(lade_vorrat(conn, "anna", wb)["menge"]) == [800.0]
+
+
+def test_einheit_aendern_und_personenschutz(conn):
+    wb = Wissensbasis()
+    fuege_hinzu(conn, "anna", "Brokkoli", 800, "g", None)
+    eintrag_id = int(lade_vorrat(conn, "anna", wb).index[0])
+    aktualisiere(conn, "ben", eintrag_id, 2, None, None, einheit="Stück")
+    assert lade_vorrat(conn, "anna", wb).loc[eintrag_id, "einheit"] == "g"
+    aktualisiere(conn, "anna", eintrag_id, 0.8, None, None, einheit="kg")
+    aktualisiere(conn, "anna", eintrag_id, 0.5, None, None)  # Ohne Einheit bleibt sie bestehen.
+    zeile = lade_vorrat(conn, "anna", wb).loc[eintrag_id]
+    assert zeile["menge"] == 0.5 and zeile["einheit"] == "kg"
+
+
+def test_geaenderte_einheit_waehrend_gekocht_dialog_wird_abgelehnt(conn):
+    wb = Wissensbasis()
+    fuege_hinzu(conn, "anna", "Brokkoli", 800, "g", None)
+    vorher = vorrat_als_liste(lade_vorrat(conn, "anna", wb))
+    eintrag_id = vorher[0]["id"]
+    aktualisiere(conn, "anna", eintrag_id, 800, None, None, einheit="Stück")
+    with pytest.raises(ValueError, match="geändert"):
+        koche(conn, "anna", "test", 5, vorher, {eintrag_id: 300})
+    assert lade_bewertungen(conn) == []
+    assert lade_vorrat(conn, "anna", wb).loc[eintrag_id, "menge"] == 800
