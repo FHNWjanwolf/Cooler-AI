@@ -39,7 +39,8 @@ CREATE TABLE IF NOT EXISTS bewertung (
     rezept_id TEXT NOT NULL,
     datum TEXT NOT NULL,
     note INTEGER NOT NULL,        -- 1 (passt gar nicht) bis 5 (passt perfekt)
-    vorrat_snapshot TEXT NOT NULL -- Vorrat zum Zeitpunkt der Bewertung als JSON (Pflicht fürs Training!)
+    vorrat_snapshot TEXT NOT NULL, -- Vorrat zum Zeitpunkt der Bewertung als JSON (Pflicht fürs Training!)
+    gekocht INTEGER DEFAULT 0      -- 1 = Rezept wurde wirklich gekocht (stärkeres Signal als nur bewertet)
 );
 """
 
@@ -64,6 +65,7 @@ def richte_ein(conn):
     conn.executescript(SCHEMA)
     _ergaenze_spalte(conn, "vorratseintrag", "person", "TEXT")
     _ergaenze_spalte(conn, "bewertung", "person", "TEXT")
+    _ergaenze_spalte(conn, "bewertung", "gekocht", "INTEGER DEFAULT 0")
 
 
 def verbinde(pfad=DB_PFAD):
@@ -126,6 +128,7 @@ def vorrat_als_liste(df):
     """Vorrat im Format, das die Wissensbasis und der Snapshot erwarten."""
     return [
         {
+            "id": int(r.Index),   # Vorratseintrag, damit er nach dem Kochen entfernt werden kann
             "zutat": r.zutat,
             "menge": None if pd.isna(r.menge) else float(r.menge),
             "einheit": r.einheit,
@@ -161,12 +164,23 @@ def loesche(conn, person, eintrag_id):
 
 # ---------------------------------------------------------------- Bewertungen
 
-def speichere_bewertung(conn, person, rezept_id, note, vorrat_snapshot):
+def speichere_bewertung(conn, person, rezept_id, note, vorrat_snapshot, gekocht=False):
     conn.execute(
-        "INSERT INTO bewertung (person, rezept_id, datum, note, vorrat_snapshot) VALUES (?, ?, ?, ?, ?)",
-        (person, rezept_id, date.today().isoformat(), note, json.dumps(vorrat_snapshot, ensure_ascii=False)),
+        "INSERT INTO bewertung (person, rezept_id, datum, note, vorrat_snapshot, gekocht) VALUES (?, ?, ?, ?, ?, ?)",
+        (person, rezept_id, date.today().isoformat(), note, json.dumps(vorrat_snapshot, ensure_ascii=False),
+         int(gekocht)),
     )
     conn.commit()
+
+
+def koche(conn, person, rezept_id, note, vorrat_snapshot, aufgebraucht_ids):
+    """Rezept wurde gekocht: Bewertung speichern und aufgebrauchte Vorratseinträge entfernen.
+
+    Der Snapshot ist der Vorrat VOR dem Kochen, damit das Training die Situation kennt.
+    """
+    speichere_bewertung(conn, person, rezept_id, note, vorrat_snapshot, gekocht=True)
+    for eintrag_id in aufgebraucht_ids:
+        loesche(conn, person, eintrag_id)
 
 
 def lade_bewertungen(conn):
@@ -176,9 +190,9 @@ def lade_bewertungen(conn):
     lässt sich später pro Person auswerten oder trainieren.
     """
     zeilen = conn.execute(
-        "SELECT person, rezept_id, datum, note, vorrat_snapshot FROM bewertung ORDER BY datum, id"
+        "SELECT person, rezept_id, datum, note, vorrat_snapshot, gekocht FROM bewertung ORDER BY datum, id"
     ).fetchall()
     return [
-        {"person": p, "rezept_id": r, "datum": d, "note": n, "vorrat": json.loads(s)}
-        for p, r, d, n, s in zeilen
+        {"person": p, "rezept_id": r, "datum": d, "note": n, "vorrat": json.loads(s), "gekocht": bool(g)}
+        for p, r, d, n, s, g in zeilen
     ]

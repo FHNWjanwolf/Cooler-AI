@@ -61,6 +61,7 @@ Vorrat erfassen → SQLite → Wissensbasis (filtert, ersetzt, begründet) → M
 - Grundgerüst läuft durchgehend: `streamlit run cooler_ai.py` (Seiten Vorrat und Vorschläge), `pytest`, `python -m ml.trainiere`.
 - Ontologie mit ca. 65 Klassen und 10 Ersatzregeln, 18 selbst geschriebene Rezepte.
 - Ranking: regelbasierte Baseline, logistische Regression ab 20 Bewertungen (beim App-Start trainiert).
+- "Gekocht"-Dialog baut den Vorrat ab und speichert eine Bewertung mit `gekocht = 1`. Einkaufsideen auf der Vorratsseite (Rezepte mit genau einer fehlenden Pflichtzutat, nach ML-Vorliebe gewichtet).
 - Offene Aufgaben pro Person: `docs/fahrplan.md`.
 
 ## Arbeitsweise
