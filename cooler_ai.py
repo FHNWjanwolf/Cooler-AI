@@ -45,6 +45,8 @@ seiten = st.navigation([
     st.Page("app/startseite.py", title="Startseite", icon="🏠", default=True),
     st.Page("app/vorrat.py", title="Vorrat", icon="🥕"),
     st.Page("app/vorschlaege.py", title="Menüvorschläge", icon="🍳"),
+    st.Page("app/haushalt.py", title="Grundstock", icon="🧂"),
+    st.Page("app/szenarien_seite.py", title="Testszenarien", icon="🧪"),
 ])
 if st.session_state.pop("zur_startseite", False):
     st.switch_page("app/startseite.py")

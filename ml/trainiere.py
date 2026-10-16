@@ -32,7 +32,8 @@ def erstelle_datensatz(bewertungen, rezepte, wb, mit_gewichten=False):
         rezept = nach_id.get(b["rezept_id"])
         if rezept is None:
             continue  # Rezept wurde inzwischen gelöscht
-        pruefung = pruefe_rezept(rezept, b["vorrat"], wb)
+        kontext = wb.mit_grundstock(b["grundstock"]) if b.get("grundstock") is not None else wb
+        pruefung = pruefe_rezept(rezept, b["vorrat"], kontext)
         if pruefung is None:
             continue  # Wissensbasis wurde geändert, Rezept wäre heute nicht mehr geeignet
         X.append(pruefung["merkmale"])
@@ -70,7 +71,8 @@ def top3_trefferquote(test_bewertungen, rezepte, wb, modell):
     for b in test_bewertungen:
         if b["note"] < GUT_AB_NOTE:
             continue
-        kandidaten = finde_kandidaten(rezepte, b["vorrat"], wb)
+        kontext = wb.mit_grundstock(b["grundstock"]) if b.get("grundstock") is not None else wb
+        kandidaten = finde_kandidaten(rezepte, b["vorrat"], kontext)
         if b["rezept_id"] not in [k["rezept"]["id"] for k in kandidaten]:
             continue
         top3 = [k["rezept"]["id"] for k in sortiere(kandidaten, modell)[:3]]

@@ -90,6 +90,38 @@ Vor dem Prod-Rollout prüfen:
 - Die Anmeldung führt auf die Startseite; Daumen, Einkauf übernehmen und
   der Mengenabzug funktionieren wie in der vorherigen Vorbereitung beschrieben.
 
+## Vorbereitung: Sterne, Rezeptmengen und Grundstock
+
+Branch `feature/sterne-grundstock-testszenarien` → PR auf `dev`.
+Diese Änderung ist zum späteren Mergen vorbereitet und wird noch nicht deployt.
+
+Die automatische Schemaeinrichtung ergänzt `haushalt` und
+`bewertung.grundstock_snapshot`. Bestehende Vorräte und Bewertungen bleiben
+erhalten. Ohne gespeicherten Haushalts-Grundstock gilt die explizite Standardliste.
+Auch eine bewusst leere Auswahl bleibt nach erneutem Anmelden leer.
+
+Vor einem späteren Prod-Rollout auf Test prüfen:
+
+- «Gekocht» öffnen: Rezeptmengen sind vorbelegt. Den vierten Stern anklicken:
+  vier Sterne sind ausgewählt, der fünfte ist grau. Gespeichert wird Note 4.
+  Ohne Sternauswahl kann noch nicht gespeichert werden.
+- Mit 800 g Kartoffeln, 200 ml Rahm und 200 ml Milch zeigt Kartoffelgratin
+  600 g, 150 ml und 150 ml als Vorschlag. Mit zu wenig erfasstem Bestand bleibt
+  die volle Rezeptmenge sichtbar; vor dem Speichern den Verbrauch korrigieren
+  oder den Vorrat ergänzen. Vergleichbare Einheiten werden umgerechnet.
+- Ersatzprodukte mit vergleichbaren Einheiten übernehmen die Rezeptmenge als
+  prüfbaren Vorschlag. Bei nicht vergleichbaren Einheiten oder fehlenden
+  Rezeptmengen bleibt eine manuelle Eingabe nötig; die Rezeptmengen stehen im Dialog.
+- Unbekannte Vorratsmengen zeigen ebenfalls die Rezeptmenge, soweit umrechenbar.
+  Ohne bekannte Ausgangsmenge bleibt die Restmenge unbekannt; nur ausdrücklich
+  «vollständig aufgebraucht» entfernt den Eintrag.
+- Auf «Grundstock» Zutaten abwählen, speichern und erneut anmelden. Die Auswahl
+  gilt nur für diese Person. Ohne Pfeffer im Grundstock oder Vorrat ist Carbonara
+  nicht geeignet. Nach Standard-Reset erscheint sie bei vorhandenem Restvorrat wieder.
+- Die Seite «Testszenarien» zeigt die gespeicherten künstlichen Vorräte. Auswahl
+  und Prüfung dürfen keine echten Bestände oder Bewertungen verändern.
+- `python -m app.testszenarien` und `pytest` müssen erfolgreich sein.
+
 ## Warum Turso
 
 Die Streamlit Cloud behält keine Dateien: Bei jedem Neustart oder Deploy wäre eine lokale `cooler_ai.db` leer. In Prod sind die Bewertungen aber unsere Trainingsdaten. Turso ist SQLite in der Cloud (gleiches SQL, gleiches Schema), der Gratis-Plan reicht für das Projekt.

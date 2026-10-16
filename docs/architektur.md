@@ -52,7 +52,7 @@ flowchart TD
 
 ## Gekocht
 
-Der Knopf "Gekocht" öffnet einen Dialog mit vorgeschlagenen, bearbeitbaren Verbrauchsmengen. Gespeichert werden eine Bewertung von 1–5 mit `gekocht = 1` (Snapshot = Vorrat vor dem Kochen) und der Mengenabzug (`app/datenbank.py: koche`). Restmengen bleiben erhalten. Die Rezeptauswahl prüft weiterhin nur das Vorhandensein der Zutaten.
+Der Knopf "Gekocht" öffnet einen Dialog mit vorgeschlagenen, bearbeitbaren Verbrauchsmengen. Gespeichert werden eine Bewertung von 1–5 Sternen mit `gekocht = 1` (Snapshot = Vorrat vor dem Kochen) und der Mengenabzug (`app/datenbank.py: koche`). Restmengen bleiben erhalten. Die Rezeptauswahl prüft weiterhin nur das Vorhandensein der Zutaten.
 
 ## Einkaufsideen
 
@@ -89,3 +89,9 @@ Auch hier gilt: Die Wissensbasis entscheidet, welche Einkäufe in Frage kommen, 
 Nach der Anmeldung öffnet `app/startseite.py` die Übersicht: eigener Vorrat links, Menüvorschläge und Einkaufsideen rechts. «Vorrat anpassen» führt zur bestehenden Vorratsseite. `app/rezeptansicht.py` rendert die Menüs auf Start- und Vorschlagsseite; `app/einkauf.py` zeigt die Einkaufsideen auf Start- und Vorratsseite.
 
 Ein Einkaufsvorschlag enthält die Menge für das bestplatzierte freigeschaltete Rezept, die übliche Einheit und ein Ablaufdatum aus der Wissensbasis. «In den Vorrat übernehmen» fügt diese Werte für die angemeldete Person hinzu und lädt die Übersicht neu. Die übrigen freigeschalteten Rezepte werden als Alternativen angezeigt; ihre Mengen werden nicht summiert.
+
+## Haushaltskontext und künstliche Vorräte
+
+`Wissensbasis.mit_grundstock()` erzeugt einen eigenen Kontext aus der expliziten Haushaltsliste. Die Basis-Ontologie bleibt gemeinsam und unverändert. Die App lädt den gespeicherten Grundstock der angemeldeten Person; neue Kategorien oder Unterarten erweitern diese Liste nicht. Bewertungen halten neben dem Vorrat auch die Grundstockliste fest. Training und Evaluation rekonstruieren diesen historischen Kontext.
+
+`app/testszenarien.py` lädt gespeicherte künstliche Vorräte aus JSON-Dateien, berechnet den Ablauf bezogen auf ihren festen Stichtag und vergleicht die geeigneten Rezepte mit den gespeicherten Erwartungen. Die Seite Testszenarien zeigt diese Ergebnisse ohne Datenbankzugriff und ohne Bewertungs- oder Kochaktionen. Die automatische Testsuite prüft dieselben Dateien und den Mengenabzug mit einer temporären Datenbank.

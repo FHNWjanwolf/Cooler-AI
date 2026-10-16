@@ -1,5 +1,6 @@
 """Mengenplanung und Gekocht-Dialog für Teilverbrauch."""
 from pathlib import Path
+import pytest
 from app.verbrauch import verbrauchsplan
 from wissensbasis.wissen import Wissensbasis
 
@@ -24,12 +25,18 @@ def test_einheiten_und_hierarchie():
     assert verbrauchsplan(rezept("Ei", 2, "Stück"), [artikel(1, "Ei", 6, "Stk")], wb) == {1: 2}
 
 
-def test_unbekannte_mengen_und_ersatz_nicht_schaetzen():
+def test_rezeptmenge_auch_bei_unbekanntem_bestand_und_unvergleichbaren_einheiten():
     wb = Wissensbasis()
-    assert verbrauchsplan(rezept(), [artikel(1, "Kartoffel", None)], wb) == {1: None}
+    assert verbrauchsplan(rezept(), [artikel(1, "Kartoffel", None)], wb) == {1: 600}
     assert verbrauchsplan(rezept(), [artikel(1, "Kartoffel", 2, "Stück")], wb) == {1: None}
     assert verbrauchsplan(rezept("Rahm", 150, "ml"),
                          [artikel(1, "CremeFraiche", 200)], wb) == {1: None}
+    assert verbrauchsplan(rezept("Milch", 150, "ml"),
+                         [artikel(1, "Vollrahm", 200, "ml")], wb) == {1: 150}
+
+
+def test_rezeptvorgabe_wird_nicht_auf_den_vorrat_gekuerzt():
+    assert verbrauchsplan(rezept(), [artikel(1, "Kartoffel", 400)], Wissensbasis()) == {1: 600}
 
 
 def test_gleicher_artikel_fuer_mehrere_rezeptzutaten():
@@ -38,7 +45,8 @@ def test_gleicher_artikel_fuer_mehrere_rezeptzutaten():
     assert verbrauchsplan(r, [artikel(1, "Cherrytomate", 200)], Wissensbasis()) == {1: 150}
 
 
-def test_gekocht_dialog_speichert_teilverbrauch(tmp_path, monkeypatch):
+@pytest.mark.parametrize("sterne", range(5), ids=["1_Stern", "2_Sterne", "3_Sterne", "4_Sterne", "5_Sterne"])
+def test_gekocht_dialog_speichert_teilverbrauch(tmp_path, monkeypatch, sterne):
     from streamlit.testing.v1 import AppTest
     from app import ressourcen
     from app.datenbank import fuege_hinzu, lade_bewertungen, lade_vorrat, verbinde
@@ -70,6 +78,8 @@ gekocht_dialog(kandidat, vorrat)
 """)
     at.session_state.person = "anna"
     at.run()
+    assert next(b for b in at.button if b.label == "Speichern").disabled
+    at.feedback(key="sterne_anna_kartoffelgratin").set_value(sterne).run()
     kartoffel_id = int(lade_vorrat(conn, "anna", Wissensbasis()).index[0])
     feld = at.number_input(key=f"verbrauch_kartoffelgratin_{kartoffel_id}")
     assert feld.value == 600
@@ -78,3 +88,4 @@ gekocht_dialog(kandidat, vorrat)
     assert not at.exception
     assert lade_vorrat(conn, "anna", Wissensbasis()).loc[kartoffel_id, "menge"] == 250
     assert lade_bewertungen(conn)[0]["gekocht"] is True
+    assert lade_bewertungen(conn)[0]["note"] == sterne + 1

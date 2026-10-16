@@ -123,6 +123,7 @@ def pruefe_rezept(rezept, vorrat, wb):
 
     return {
         "rezept": rezept,
+        "grundstock": sorted(wb.grundstock_ids),
         "vegetarisch": vegetarisch,
         "begruendungen": begruendungen,
         "fehlend_optional": fehlend_optional,

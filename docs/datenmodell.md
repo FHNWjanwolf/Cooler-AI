@@ -1,12 +1,13 @@
 # Datenmodell
 
-Die Daten liegen an drei Orten, je nach Art:
+Die Daten liegen getrennt nach ihrer Art:
 
 | Ort | Inhalt | Ändert sich |
 |---|---|---|
 | `wissensbasis/cooler_ai.ttl` (OWL) | Zutaten, Kategorien, Eigenschaften, Ersatzregeln | selten, per Pull Request |
 | `daten/rezepte.json` | Rezepte mit Zutaten | selten, per Pull Request |
-| `cooler_ai.db` (SQLite, lokal) bzw. Turso (Test/Prod) | Vorrat, Bewertungen | laufend, wird nicht eingecheckt |
+| `daten/testszenarien/*.json` | künstliche Vorräte, Stichtag, Grundstock und erwartete Rezept-IDs | per Pull Request |
+| `cooler_ai.db` (SQLite, lokal) bzw. Turso (Test/Prod) | Vorrat, Haushalts-Grundstock, Bewertungen | laufend, wird nicht eingecheckt |
 
 Verbunden sind sie über die **Zutat-ID** (lokaler Name der OWL-Klasse, z.B. `Cherrytomate`) und die **Rezept-ID** (z.B. `spaghetti_carbonara`).
 
@@ -25,7 +26,6 @@ classDiagram
         einheit
         haltbarTage
         haltbarOffenTage
-        grundstock
         vegetarisch
     }
     class Ersatzregel {
@@ -66,6 +66,10 @@ erDiagram
     date ablaufdatum
     date geoeffnet_am
   }
+  HAUSHALT {
+    string person PK
+    string grundstock "JSON-Liste konkreter Zutaten, auch leer"
+  }
   BEWERTUNG {
     int id PK
     string person "Name, klein geschrieben"
@@ -74,6 +78,7 @@ erDiagram
     int note "1 bis 5"
     string vorrat_snapshot "JSON"
     int gekocht "1 = wirklich gekocht"
+    string grundstock_snapshot "JSON-Liste zum Bewertungszeitpunkt, ältere Zeilen NULL"
   }
 ```
 
@@ -86,5 +91,13 @@ erDiagram
 - **`BEWERTUNG.vorrat_snapshot`** speichert den Vorrat zum Zeitpunkt der Bewertung als JSON (Zutat, Menge, Einheit, Tage bis Ablauf). Ohne ihn lassen sich die Trainingsmerkmale nicht rekonstruieren.
 - **`BEWERTUNG.gekocht`** kam nachträglich dazu. `verbinde()` ergänzt die Spalte in bestehenden Datenbanken (Turso Test/Prod) automatisch.
 - **Vorab-Rückmeldung**: Daumen hoch wird als `note = 5`, Daumen runter als `note = 1`, jeweils mit `gekocht = 0` gespeichert. Die Werte dienen als positive/negative Labels; die Oberfläche zeigt keine Zahlenskala. Bestehende Vorab-Bewertungen bleiben verwendbar.
-- **Trainingsgewicht**: Vorab-Rückmeldungen zählen mit Gewicht 1, die 1–5-Bewertungen nach dem Kochen mit Gewicht 3. Der Snapshot und die übrigen Spalten bleiben unverändert; es ist keine neue Migration nötig.
+- **Trainingsgewicht**: Vorab-Rückmeldungen zählen mit Gewicht 1, die 1–5-Sterne-Bewertungen nach dem Kochen mit Gewicht 3. Die Sterne werden weiterhin als ganze Zahl 1–5 in `note` gespeichert.
 - Wird eine Zutat aus der Ontologie gelöscht, bleiben alte Vorratseinträge mit dieser ID stehen. Zutaten deshalb lieber umbenennen (`rdfs:label`) als die ID ändern.
+
+## Grundstock und Testszenarien
+
+`haushalt.grundstock` speichert pro Person eine explizite Zutatenliste. Eine leere Liste ist eine bewusste Auswahl; nur ohne gespeicherten Eintrag gilt die Standardliste. Änderungen beeinflussen Menüvorschläge, Einkaufsideen und auswählbare Vorratszutaten. Die gemeinsam geladene Ontologie wird dabei nicht geändert.
+
+`bewertung.grundstock_snapshot` hält den damaligen Grundstock für Training und Evaluation fest. Bestehende Datenbanken erhalten die Tabelle `haushalt` und die optionale Spalte automatisch; ältere Bewertungen ohne Snapshot werden in App und CLI mit der bisherigen Standardliste ausgewertet.
+
+Testszenarien liegen separat als JSON-Dateien. Sie enthalten konkrete Zutaten mit Menge, Einheit, Ablauf- und gegebenenfalls Öffnungsdatum sowie einen festen Stichtag, einen expliziten Grundstock und die erwarteten Rezept-IDs. Die Vorschau schreibt weder in Vorrat noch Bewertungen. Automatische Datenbanktests laden diese Szenarien nur in temporäre Datenbanken.

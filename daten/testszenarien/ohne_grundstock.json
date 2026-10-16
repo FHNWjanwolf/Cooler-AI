@@ -1,0 +1,11 @@
+{
+  "id": "ohne_grundstock", "titel": "Ohne Grundstock fehlt der Pfeffer", "datum": "2026-10-16",
+  "grundstock": [],
+  "zutaten": [
+    {"zutat": "Spaghetti", "menge": 200, "einheit": "g", "ablaufdatum": "2027-04-16", "geoeffnet_am": null},
+    {"zutat": "Ei", "menge": 6, "einheit": "Stück", "ablaufdatum": "2026-10-24", "geoeffnet_am": null},
+    {"zutat": "Speck", "menge": 100, "einheit": "g", "ablaufdatum": "2026-10-17", "geoeffnet_am": null},
+    {"zutat": "Parmesan", "menge": 40, "einheit": "g", "ablaufdatum": "2026-10-30", "geoeffnet_am": null}
+  ],
+  "erwartete_rezepte": []
+}

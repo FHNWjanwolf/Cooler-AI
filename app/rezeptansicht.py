@@ -11,6 +11,8 @@ from app import ressourcen
 from app.verbrauch import verbrauchsplan
 from ml.ranking import sortiere
 from wissensbasis.eignung import finde_kandidaten, lade_rezepte
+
+
 def zutaten_text(rezept):
     wb = ressourcen.wissensbasis()
     teile = []
@@ -28,12 +30,16 @@ def zutaten_text(rezept):
 def gekocht_dialog(kandidat, vorrat):
     """Verbrauch prüfen, Bewertung speichern und Restmengen behalten."""
     wb = ressourcen.wissensbasis()
+    if "grundstock" in kandidat:
+        wb = wb.mit_grundstock(kandidat["grundstock"])
     person = st.session_state.person
     rezept = kandidat["rezept"]
     st.markdown(f"**{rezept['titel']}**")
+    st.caption("Rezeptmengen: " + zutaten_text(rezept))
 
     verbrauch = {}
     plan = verbrauchsplan(rezept, vorrat, wb)
+    fehlmenge = False
     if plan:
         st.write("Wie viel hast du verwendet? Prüfe die Rezeptmengen und passe sie bei Bedarf an. "
                  "Mit 0 bleibt eine Zutat unverändert.")
@@ -50,24 +56,38 @@ def gekocht_dialog(kandidat, vorrat):
                     st.caption(f"{name}: Verbrauch bitte selbst eintragen (fehlende Mengen, "
                                "unterschiedliche Einheiten oder Ersatzprodukt).")
                 verwendet = st.number_input(
-                    f"{name}: verwendet ({einheit})", min_value=0.0, max_value=float(menge),
-                    value=float(vorschlag or 0), key=key,
+                    f"{name}: verwendet ({einheit})", min_value=0.0,
+                    value=float(vorschlag) if vorschlag is not None else None, key=key,
                 )
-                st.caption(f"Vorhanden: {menge:g} {einheit} · Übrig: {menge - verwendet:g} {einheit}")
+                verwendet = verwendet or 0.0
+                if verwendet > menge:
+                    fehlmenge = True
+                    st.warning(f"{name}: Vorgeschlagen sind {verwendet:g} {einheit}, erfasst sind "
+                               f"{menge:g} {einheit}. Passe den tatsächlichen Verbrauch an oder "
+                               "ergänze zuerst den Vorrat.")
+                else:
+                    st.caption(f"Vorhanden: {menge:g} {einheit} · Übrig: {menge - verwendet:g} {einheit}")
                 verbrauch[artikel["id"]] = verwendet
             else:
-                st.caption(f"{name}: Vorratsmenge unbekannt. Für einen Teilverbrauch zuerst "
-                           "die Menge unter «Vorrat» erfassen.")
-                if st.checkbox(f"{name} vollständig aufgebraucht", value=False, key=key):
+                st.number_input(f"{name}: verwendet ({einheit})", min_value=0.0,
+                                value=float(vorschlag) if vorschlag is not None else None, key=key)
+                st.caption(f"{name}: Vorratsmenge unbekannt; auch die Restmenge bleibt unbekannt. "
+                           "Für einen berechneten Restbestand zuerst die Menge unter «Vorrat» erfassen.")
+                if st.checkbox(f"{name} vollständig aufgebraucht", value=False, key=key + "_aufgebraucht"):
                     verbrauch[artikel["id"]] = None
     else:
         st.write("Das Rezept braucht nur Zutaten aus dem Grundstock.")
 
-    note = st.select_slider("Wie hat es geschmeckt?", options=[1, 2, 3, 4, 5], value=4)
-    if st.button("Speichern", type="primary"):
+    st.caption("Bei Ersatzprodukten ist die Rezeptmenge ein Vorschlag; prüfe den tatsächlichen Verbrauch.")
+    st.write("Wie hat es geschmeckt?")
+    sterne = st.feedback("stars", key=f"sterne_{person}_{rezept['id']}")
+    if sterne is not None:
+        st.caption(f"{sterne + 1} von 5 Sternen")
+    if st.button("Speichern", type="primary", disabled=sterne is None or fehlmenge):
         try:
             # Der Dialog kann länger offen sein als die Turso-Verbindung gültig ist.
-            koche(ressourcen.verbindung(), person, rezept["id"], note, vorrat, verbrauch)
+            koche(ressourcen.verbindung(), person, rezept["id"], sterne + 1, vorrat, verbrauch,
+                  grundstock=kandidat.get("grundstock", sorted(wb.grundstock_ids)))
         except ValueError as fehler:
             st.error(str(fehler))
             return
@@ -106,7 +126,8 @@ def zeige_rezept(kandidat, vorrat):
         hoch, runter = st.columns(2)
         for spalte, wert, text in [(hoch, 5, "👍 Ja"), (runter, 1, "👎 Nein")]:
             if spalte.button(text, key=f"{auswahl_key}_{wert}", disabled=auswahl == wert):
-                speichere_bewertung(ressourcen.verbindung(), person, rezept["id"], wert, vorrat)
+                speichere_bewertung(ressourcen.verbindung(), person, rezept["id"], wert, vorrat,
+                                   grundstock=kandidat.get("grundstock", sorted(wb.grundstock_ids)))
                 st.session_state[auswahl_key] = wert
                 st.rerun()
         if auswahl is not None:
@@ -114,6 +135,11 @@ def zeige_rezept(kandidat, vorrat):
 
         if st.button("🍳 Gekocht", key=f"gekocht_{rezept['id']}",
                      help="Bewertet das Rezept und zieht die verbrauchten Mengen vom Vorrat ab."):
+            # Bei jedem neuen Öffnen wieder mit den aktuellen Rezeptmengen
+            # beginnen, auch wenn ein vorheriger Dialog abgebrochen wurde.
+            for key in list(st.session_state):
+                if key.startswith(f"verbrauch_{rezept['id']}_") or key == f"sterne_{person}_{rezept['id']}":
+                    del st.session_state[key]
             gekocht_dialog(kandidat, vorrat)
 
 
@@ -122,7 +148,6 @@ def zeige_vorschlaege(vorrat_df):
     wb = ressourcen.wissensbasis()
     if vorrat_df.empty:
         st.info("Erfasse zuerst deinen Vorrat, dann erscheinen hier passende Menüs.")
-        return
     vorrat = vorrat_als_liste(vorrat_df)
     c1, c2 = st.columns(2)
     nur_vegetarisch = c1.toggle("Nur vegetarisch")

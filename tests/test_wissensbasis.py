@@ -64,7 +64,7 @@ def test_hierarchie(wb):
 def test_eigenschaften_werden_vererbt(wb):
     assert wb.eigenschaft("Vollrahm", "einheit") == "ml"      # von Rahm
     assert wb.eigenschaft("Kochrahm", "haltbarTage") == 30     # eigener Wert überschreibt Rahm (21)
-    assert wb.ist_grundstock("Salz")                           # von Gewuerz
+    assert wb.ist_grundstock("Salz")                           # explizite Standardliste
     assert not wb.ist_vegetarisch("Speck")                     # von Fleisch
     assert wb.ist_vegetarisch("Karotte")                       # von Zutat
 
@@ -158,3 +158,30 @@ def test_fast_geeignet_bei_genau_einer_luecke(wb):
     assert [(f["fehlt"], f["kandidat"]["rezept"]["id"]) for f in ergebnis] == [("Lauch", "eine_luecke")]
     # Die Karotte im Vorrat wird gerettet, der gekaufte Lauch zählt nicht als dringend
     assert ergebnis[0]["kandidat"]["dringend"] == ["Karotte"]
+
+
+def test_neues_gewuerz_wird_nicht_automatisch_grundstock(tmp_path):
+    from wissensbasis.wissen import ONTOLOGIE
+
+    pfad = tmp_path / "mit_safran.ttl"
+    pfad.write_text(ONTOLOGIE.read_text() + '\n:Safran a owl:Class ; rdfs:subClassOf :Gewuerz ; '
+                    'rdfs:label "Safran"@de ; :einheit "g" .\n')
+    wb = Wissensbasis(pfad)
+    assert wb.ist_grundstock("Salz")
+    assert not wb.ist_grundstock("Safran")
+    assert "Safran" in wb.zutaten_zur_auswahl()
+    assert pruefe_rezept(rezept(("Safran", True)), [], wb) is None
+    assert wb.mit_grundstock(["Safran"]).ist_grundstock("Safran")
+
+
+def test_haushalte_beeinflussen_nicht_den_gemeinsamen_kontext(wb):
+    anna = wb.mit_grundstock(["Olivenoel"])
+    ben = wb.mit_grundstock([])
+    assert anna.ist_grundstock("Oel")
+    assert not anna.ist_grundstock("Rapsoel")
+    assert not ben.ist_grundstock("Salz")
+    assert wb.ist_grundstock("Salz")
+    # Ohne Standard-Grundstock lässt sich Salz als konkreter Vorrat erfassen.
+    assert "Salz" in ben.zutaten_zur_auswahl()
+    assert pruefe_rezept(rezept(("Salz", True)), [], ben) is None
+    assert pruefe_rezept(rezept(("Salz", True)), [{"zutat": "Salz", "tage": None}], ben)
