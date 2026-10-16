@@ -2,7 +2,8 @@
 # damit nach dem Release keine alten Python-Module im Prozess verbleiben.
 streamlit==1.66.0
 pandas>=2.0
-scikit-learn>=1.4
+# Getestete ML-Version; Abhängigkeitsänderung startet den Cloud-Prozess neu.
+scikit-learn==1.9.1
 rdflib>=7.0
 libsql>=0.1.11
 pytest>=8.0

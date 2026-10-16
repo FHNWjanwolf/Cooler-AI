@@ -187,17 +187,6 @@ def loesche(conn, person, eintrag_id):
 
 # ---------------------------------------------------------------- Bewertungen
 
-def speichere_bewertung(conn, person, rezept_id, note, vorrat_snapshot, gekocht=False, grundstock=None):
-    grundstock = lade_grundstock(conn, person) if grundstock is None else grundstock
-    conn.execute(
-        "INSERT INTO bewertung (person, rezept_id, datum, note, vorrat_snapshot, gekocht, grundstock_snapshot) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (person, rezept_id, date.today().isoformat(), note, json.dumps(vorrat_snapshot, ensure_ascii=False),
-         int(gekocht), json.dumps(sorted(grundstock), ensure_ascii=False)),
-    )
-    conn.commit()
-
-
 def koche(conn, person, rezept_id, note, vorrat_snapshot, verbrauch, grundstock=None):
     """Verbrauch {Eintrag-ID: Menge} und Bewertung gemeinsam speichern.
 
@@ -238,15 +227,16 @@ def koche(conn, person, rezept_id, note, vorrat_snapshot, verbrauch, grundstock=
         raise
 
 
-def lade_bewertungen(conn):
+def lade_bewertungen(conn, nur_gekocht=False):
     """Alle Bewertungen aller Personen, älteste zuerst, mit ausgepacktem Snapshot.
 
     Das Modell lernt vorerst aus allen Bewertungen gemeinsam. Über das Feld "person"
     lässt sich später pro Person auswerten oder trainieren.
     """
+    filter_sql = " WHERE gekocht = 1" if nur_gekocht else ""
     zeilen = conn.execute(
         "SELECT person, rezept_id, datum, note, vorrat_snapshot, gekocht, grundstock_snapshot "
-        "FROM bewertung ORDER BY datum, id"
+        "FROM bewertung" + filter_sql + " ORDER BY datum, id"
     ).fetchall()
     return [
         {"person": p, "rezept_id": r, "datum": d, "note": n, "vorrat": json.loads(s), "gekocht": bool(g),

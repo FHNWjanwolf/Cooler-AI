@@ -45,13 +45,13 @@ def wissensbasis():
 
 
 @st.cache_resource(max_entries=1)
-def _modell_fuer(anzahl_bewertungen):
-    # anzahl_bewertungen dient nur als Schlüssel für den Cache:
-    # Sobald eine neue Bewertung dazukommt, wird neu trainiert.
-    return trainiere_falls_moeglich(lade_bewertungen(verbindung()), lade_rezepte(), _basis())
+def _modell_fuer_kochbewertungen(anzahl_kochbewertungen):
+    # anzahl_kochbewertungen dient nur als Schlüssel für den Cache:
+    # Sobald eine Kochbewertung dazukommt, wird neu trainiert.
+    return trainiere_falls_moeglich(lade_bewertungen(verbindung(), nur_gekocht=True), lade_rezepte(), _basis())
 
 
 def ml_modell():
     """Aktuelles ML-Modell, oder None, solange es zu wenig Bewertungen gibt."""
-    anzahl = verbindung().execute("SELECT COUNT(*) FROM bewertung").fetchone()[0]
-    return _modell_fuer(anzahl)
+    anzahl = verbindung().execute("SELECT COUNT(*) FROM bewertung WHERE gekocht = 1").fetchone()[0]
+    return _modell_fuer_kochbewertungen(anzahl)
