@@ -21,6 +21,7 @@ from datetime import date
 from pathlib import Path
 
 import pandas as pd
+from wissensbasis.grundstock import STANDARD_GRUNDSTOCK
 
 DB_PFAD = Path(__file__).parent.parent / "cooler_ai.db"
 
@@ -41,7 +42,12 @@ CREATE TABLE IF NOT EXISTS bewertung (
     datum TEXT NOT NULL,
     note INTEGER NOT NULL,        -- 1 (passt gar nicht) bis 5 (passt perfekt)
     vorrat_snapshot TEXT NOT NULL, -- Vorrat zum Zeitpunkt der Bewertung als JSON (Pflicht fürs Training!)
-    gekocht INTEGER DEFAULT 0      -- 1 = Rezept wurde wirklich gekocht (stärkeres Signal als nur bewertet)
+    gekocht INTEGER DEFAULT 0,     -- 1 = Rezept wurde wirklich gekocht (stärkeres Signal als nur bewertet)
+    grundstock_snapshot TEXT        -- Expliziter Haushalts-Grundstock zum Zeitpunkt der Bewertung
+);
+CREATE TABLE IF NOT EXISTS haushalt (
+    person TEXT PRIMARY KEY,
+    grundstock TEXT NOT NULL        -- JSON-Liste, auch [] ist eine bewusste Auswahl
 );
 """
 
@@ -67,6 +73,7 @@ def richte_ein(conn):
     _ergaenze_spalte(conn, "vorratseintrag", "person", "TEXT")
     _ergaenze_spalte(conn, "bewertung", "person", "TEXT")
     _ergaenze_spalte(conn, "bewertung", "gekocht", "INTEGER DEFAULT 0")
+    _ergaenze_spalte(conn, "bewertung", "grundstock_snapshot", "TEXT")
 
 
 def verbinde(pfad=DB_PFAD):
@@ -109,6 +116,20 @@ def _als_datum(text):
 
 
 # ---------------------------------------------------------------- Vorrat
+
+def lade_grundstock(conn, person):
+    zeile = conn.execute("SELECT grundstock FROM haushalt WHERE person = ?", (person,)).fetchone()
+    return json.loads(zeile[0]) if zeile else list(STANDARD_GRUNDSTOCK)
+
+
+def speichere_grundstock(conn, person, zutaten, wb):
+    auswahl = sorted(wb.mit_grundstock(zutaten).grundstock_ids)
+    conn.execute(
+        "INSERT INTO haushalt (person, grundstock) VALUES (?, ?) "
+        "ON CONFLICT(person) DO UPDATE SET grundstock = excluded.grundstock",
+        (person, json.dumps(auswahl, ensure_ascii=False)),
+    )
+    conn.commit()
 
 def lade_vorrat(conn, person, wb, heute=None):
     """Vorrat einer Person als DataFrame, inkl. Tage bis zum effektiven Ablaufdatum, dringendste zuerst."""
@@ -166,16 +187,18 @@ def loesche(conn, person, eintrag_id):
 
 # ---------------------------------------------------------------- Bewertungen
 
-def speichere_bewertung(conn, person, rezept_id, note, vorrat_snapshot, gekocht=False):
+def speichere_bewertung(conn, person, rezept_id, note, vorrat_snapshot, gekocht=False, grundstock=None):
+    grundstock = lade_grundstock(conn, person) if grundstock is None else grundstock
     conn.execute(
-        "INSERT INTO bewertung (person, rezept_id, datum, note, vorrat_snapshot, gekocht) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO bewertung (person, rezept_id, datum, note, vorrat_snapshot, gekocht, grundstock_snapshot) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
         (person, rezept_id, date.today().isoformat(), note, json.dumps(vorrat_snapshot, ensure_ascii=False),
-         int(gekocht)),
+         int(gekocht), json.dumps(sorted(grundstock), ensure_ascii=False)),
     )
     conn.commit()
 
 
-def koche(conn, person, rezept_id, note, vorrat_snapshot, verbrauch):
+def koche(conn, person, rezept_id, note, vorrat_snapshot, verbrauch, grundstock=None):
     """Verbrauch {Eintrag-ID: Menge} und Bewertung gemeinsam speichern.
 
     Der Snapshot ist der Vorrat VOR dem Kochen, damit das Training die Situation kennt.
@@ -183,6 +206,7 @@ def koche(conn, person, rezept_id, note, vorrat_snapshot, verbrauch):
     """
     vorher = {v["id"]: v for v in vorrat_snapshot if "id" in v}
     try:
+        grundstock = lade_grundstock(conn, person) if grundstock is None else grundstock
         for eintrag_id, menge in verbrauch.items():
             if menge is None:
                 conn.execute("DELETE FROM vorratseintrag WHERE id = ? AND person = ?",
@@ -203,10 +227,10 @@ def koche(conn, person, rezept_id, note, vorrat_snapshot, verbrauch):
             conn.execute("DELETE FROM vorratseintrag WHERE id = ? AND person = ? AND menge = 0",
                          (eintrag_id, person))
         conn.execute(
-            "INSERT INTO bewertung (person, rezept_id, datum, note, vorrat_snapshot, gekocht) "
-            "VALUES (?, ?, ?, ?, ?, 1)",
+            "INSERT INTO bewertung (person, rezept_id, datum, note, vorrat_snapshot, gekocht, grundstock_snapshot) "
+            "VALUES (?, ?, ?, ?, ?, 1, ?)",
             (person, rezept_id, date.today().isoformat(), note,
-             json.dumps(vorrat_snapshot, ensure_ascii=False)),
+             json.dumps(vorrat_snapshot, ensure_ascii=False), json.dumps(sorted(grundstock), ensure_ascii=False)),
         )
         conn.commit()
     except Exception:
@@ -221,9 +245,11 @@ def lade_bewertungen(conn):
     lässt sich später pro Person auswerten oder trainieren.
     """
     zeilen = conn.execute(
-        "SELECT person, rezept_id, datum, note, vorrat_snapshot, gekocht FROM bewertung ORDER BY datum, id"
+        "SELECT person, rezept_id, datum, note, vorrat_snapshot, gekocht, grundstock_snapshot "
+        "FROM bewertung ORDER BY datum, id"
     ).fetchall()
     return [
-        {"person": p, "rezept_id": r, "datum": d, "note": n, "vorrat": json.loads(s), "gekocht": bool(g)}
-        for p, r, d, n, s, g in zeilen
+        {"person": p, "rezept_id": r, "datum": d, "note": n, "vorrat": json.loads(s), "gekocht": bool(g),
+         "grundstock": json.loads(gs) if gs is not None else None}
+        for p, r, d, n, s, g, gs in zeilen
     ]

@@ -56,7 +56,7 @@ with st.form("erfassen", clear_on_submit=True):
             menge_text = f"{menge:g} {einheit} " if menge else ""
             st.success(f"{menge_text}{wb.namen[zutat]} hinzugefügt.")
 
-st.caption("Immer vorhanden: " + ", ".join(wb.grundstock()))
+st.caption("Grundstock: " + (", ".join(wb.grundstock()) or "keine Zutaten ausgewählt"))
 
 vorrat = lade_vorrat(conn, person, wb)
 if vorrat.empty:

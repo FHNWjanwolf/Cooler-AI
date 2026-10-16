@@ -13,6 +13,7 @@ Vorrat erfassen → Wissensbasis (OWL) filtert geeignete Rezepte → ML-Modell s
 pip install -r requirements.txt
 streamlit run cooler_ai.py      # App
 pytest                          # Tests (vor jedem Pull Request)
+python -m app.testszenarien      # gespeicherte künstliche Vorräte prüfen
 python -m ml.trainiere          # Modell gegen Baseline evaluieren (ab 20 Bewertungen)
 ```
 

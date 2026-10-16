@@ -59,6 +59,17 @@ def test_gekocht_zaehlt_staerker_als_widersprechender_daumen():
     assert modell.predict_proba(X)[0, 1] > 0.7
 
 
+def test_training_nutzt_grundstock_zum_bewertungszeitpunkt():
+    wb = Wissensbasis().mit_grundstock([])
+    vorrat = [{"zutat": z, "tage": 10} for z in ["Spaghetti", "Ei", "Speck", "Parmesan"]]
+    bewertungen = [
+        {"rezept_id": "spaghetti_carbonara", "note": 4, "vorrat": vorrat, "grundstock": ["Pfeffer"]},
+        {"rezept_id": "spaghetti_carbonara", "note": 1, "vorrat": vorrat, "grundstock": []},
+    ]
+    X, y = erstelle_datensatz(bewertungen, lade_rezepte(), wb)
+    assert len(X) == 1 and y == [1]  # Zweite Situation fehlt der Pfeffer.
+
+
 def fast(fehlt, rezept_id, dringend=(), kategorie="Gemuese"):
     """Hilfsfunktion: ein fast geeignetes Rezept, wie es die Wissensbasis liefert."""
     kandidat = {"rezept": {"id": rezept_id}, "dringend": list(dringend),

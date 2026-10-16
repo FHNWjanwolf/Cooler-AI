@@ -8,10 +8,12 @@ Sie ist bewusst von Code und Datenbank getrennt: Wer Zutaten oder Ersatzregeln e
 | Wissen | Ort | Warum dort |
 |---|---|---|
 | Zutaten, Kategorien, Hierarchie | Ontologie | Fachwissen, gilt für alle Nutzer |
-| Haltbarkeit, Einheit, Grundstock, vegetarisch | Ontologie | wird entlang der Hierarchie vererbt |
+| Haltbarkeit, Einheit, vegetarisch | Ontologie | wird entlang der Hierarchie vererbt |
 | Ersatzregeln mit Begründung | Ontologie | Fachwissen |
 | Rezepte | `daten/rezepte.json` | viele Einträge, einfache Struktur, leicht zu ergänzen oder zu importieren |
-| Vorrat, Bewertungen | SQLite (lokal `cooler_ai.db`, Test/Prod Turso) | Nutzerdaten, ändern sich ständig |
+| Grundstock-Vorgabe | `wissensbasis/grundstock.py` | explizite Liste konkreter Zutaten, keine Kategorien |
+| Künstliche Vorräte | `daten/testszenarien/*.json` | wiederholbare Tests mit festem Stichtag |
+| Vorrat, Haushalts-Grundstock, Bewertungen | SQLite (lokal `cooler_ai.db`, Test/Prod Turso) | Nutzerdaten, ändern sich ständig |
 
 ## Modellierung in einem Satz pro Konzept
 
@@ -21,7 +23,7 @@ Sie ist bewusst von Code und Datenbank getrennt: Wer Zutaten oder Ersatzregeln e
 - **Hierarchie beim Kochen**: Braucht ein Rezept `Tomate`, passen `Cherrytomate` und `Rispentomate` aus dem Vorrat. Umgekehrt nicht.
 - **Ersatzregel**: Individuum der Klasse `:Ersatzregel` mit `:original`, `:ersatz` und `:begruendung`. Die Regel gilt auch für Unterklassen auf beiden Seiten (Regel `Rahm → CremeFraiche` gilt auch, wenn das Rezept `Vollrahm` braucht).
 - **Vegetarisch** wird nicht pro Rezept eingetragen, sondern abgeleitet: Ein Rezept ist vegetarisch, wenn keine Zutat unter `Fleisch` oder `Fisch` liegt.
-- **Grundstock** (`:grundstock true`): gilt als immer vorhanden, wird nicht erfasst. Steht bei `Oel`, `Gewuerz`, `Backzutat` und wird an alle Unterklassen vererbt.
+- **Grundstock** ist eine explizite, pro Person gespeicherte Auswahl. Die Standardliste enthält Salz, Pfeffer, Currypulver, Bouillon, Olivenöl, Rapsöl, Mehl und Zucker. Neue Unterklassen, etwa Safran unter Gewürz, gelten nicht automatisch als vorhanden. Ein ausgewähltes Olivenöl erfüllt einen Rezeptbedarf nach Öl, setzt aber kein Rapsöl voraus. Mengen und Ablaufdaten gehören zum konkreten Vorrat, nicht zum Grundstock.
 
 Die Eigenschaften sind als `owl:AnnotationProperty` angelegt. Dadurch bleibt die Ontologie OWL 2 DL und lässt sich in Protégé ohne Warnungen öffnen.
 
