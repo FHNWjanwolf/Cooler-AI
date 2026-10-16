@@ -1,0 +1,48 @@
+/* Bewertung im Kochdialog: fünf grosse, gleichmässig verteilte Sterne.
+   Die nativen Auswahlzustände, Farben und Tastaturbedienung bleiben erhalten. */
+[data-testid="stDialog"] [data-testid="stElementContainer"]:has([data-testid="stFeedback"]),
+[data-testid="stDialog"] [data-testid="stFeedback"] {
+    width: 100% !important;
+}
+
+[data-testid="stDialog"] [data-testid="stFeedback"] [role="radiogroup"] {
+    display: flex;
+    width: 100%;
+    gap: 0.35rem;
+    padding: 0.4rem;
+    box-sizing: border-box;
+    border-radius: 1rem;
+    background: rgba(128, 128, 128, 0.07);
+}
+
+[data-testid="stDialog"] [data-testid="stFeedback"] [role="radio"] {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 4.5rem;
+    border-radius: 0.75rem;
+    transition: background-color 150ms ease;
+}
+
+[data-testid="stDialog"] [data-testid="stFeedback"] [role="radio"]:hover,
+[data-testid="stDialog"] [data-testid="stFeedback"] [role="radio"]:focus-visible {
+    background: rgba(255, 193, 7, 0.12);
+}
+
+[data-testid="stDialog"] [data-testid="stFeedback"] [role="radio"] [data-testid="stIconMaterial"] {
+    font-size: clamp(2.5rem, 9vw, 3.25rem) !important;
+}
+
+[data-testid="stDialog"] [data-testid="stFeedback"] [role="radio"] svg,
+[data-testid="stDialog"] [data-testid="stFeedback"] [role="radio"] img {
+    width: clamp(2.5rem, 9vw, 3.25rem) !important;
+    height: clamp(2.5rem, 9vw, 3.25rem) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-testid="stDialog"] [data-testid="stFeedback"] [role="radio"] {
+        transition: none;
+    }
+}
