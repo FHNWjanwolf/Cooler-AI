@@ -50,7 +50,7 @@ Der Verbrauchsvorschlag gilt für die im Rezept angegebene Portionenzahl.
 Die Rezeptauswahl prüft weiterhin das Vorhandensein der Zutaten; ein Mengenmangel
 schliesst ein Rezept nicht aus. Der vorgeschlagene Abzug ist auf den Vorrat begrenzt.
 
-## Startseite, Daumen und Einkauf übernehmen
+## Startseite und Einkauf übernehmen
 
 Branch `feature/startseite-daumen-einkauf` → PR auf `dev`, danach wie oben
 über `test` nach `main`. Es gibt keine Schemaänderung und keine zusätzliche Migration.
@@ -61,9 +61,9 @@ Vor dem Prod-Rollout auf Test prüfen:
   rechts Menüs und Einkaufsideen. «Vorrat anpassen» öffnet die bestehende Bearbeitung.
 - Mit leerem Vorrat und ohne passende Menüs bleiben die Navigation und die
   Einkaufsideen sichtbar; nach Ergänzungen aktualisiert sich die Übersicht.
-- Bei einem Menü Daumen hoch oder runter anklicken: Rückmeldung wird ohne
-  weiteren Speichern-Knopf gespeichert. «Gekocht» behält die 1–5-Skala und
-  den Mengenabzug. Die Kochbewertung zählt im Training dreimal so stark.
+- Bei einem Menü ist ausschliesslich «Gekocht» verfügbar. Danach können
+  1–5 Sterne vergeben und die Verbrauchsmengen gespeichert werden.
+  Nur Kochbewertungen werden im ML berücksichtigt.
 - Mit 200 g Spaghetti, 2 Eiern und 40 g Parmesan «100 g Speck» übernehmen:
   Der Vorrat bekommt Menge, Einheit und vorgeschlagenes Ablaufdatum, danach
   erscheint Spaghetti Carbonara als Menüvorschlag. Der Einkauf verändert
@@ -76,7 +76,7 @@ Vor dem Prod-Rollout auf Test prüfen:
 ## Release: Sichtbare und bearbeitbare Einheiten
 
 Dieser Rollout umfasst auch die zuvor nur auf Dev veröffentlichten Änderungen
-an Startseite, Daumen-Rückmeldungen und Einkaufsideen. Keine Schemaänderung.
+an Startseite und Einkaufsideen. Keine Schemaänderung.
 
 Vor dem Prod-Rollout prüfen:
 
@@ -87,7 +87,7 @@ Vor dem Prod-Rollout prüfen:
   z.B. 800 g auf 0.8 kg. Die Tabelle rechnet beim Bearbeiten nicht automatisch um.
 - «Gekocht» rechnet vergleichbare Einheiten weiterhin um. Wird die Einheit in
   einem anderen Tab geändert, verlangt ein bereits offener Dialog eine neue Prüfung.
-- Die Anmeldung führt auf die Startseite; Daumen, Einkauf übernehmen und
+- Die Anmeldung führt auf die Startseite; Einkauf übernehmen und
   der Mengenabzug funktionieren wie in der vorherigen Vorbereitung beschrieben.
 
 ## Vorbereitung: Sterne, Rezeptmengen und Grundstock
@@ -214,3 +214,20 @@ python -m ml.trainiere
 Achtung: `streamlit run cooler_ai.py` mit diesen Variablen schreibt direkt in die Prod-Datenbank. Für die normale Entwicklung die Variablen nicht setzen.
 
 Tokens nie einchecken. `.env` und `.streamlit/secrets.toml` stehen in `.gitignore`.
+
+## Nur Bewertungen nach dem Kochen
+
+Die Vorab-Frage und Daumen-Buttons sind entfernt. Frühere Vorab-Bewertungen
+werden nicht gelöscht, aber schon bei der Datenbankabfrage fürs ML gefiltert.
+Training, Evaluation, zeitlicher Split, Modellcache und Mindestzahl verwenden
+nur Kochbewertungen. Es müssen 20 brauchbare Kochbewertungen und beide
+Bewertungsklassen vorhanden sein, sonst gilt die regelbasierte Sortierung.
+
+Keine Schemaänderung. Die getestete scikit-learn-Version ist auf 1.9.1 fixiert;
+die geänderte Abhängigkeitsdatei löst den Cloud-Neubau aus und verhindert,
+dass ein alter importierter Trainings- oder UI-Stand weiterläuft.
+
+Prüfen: Auf Start- und Menüseite erscheinen keine Vorab-Frage und keine
+Daumen-Buttons. «Gekocht» zeigt weiterhin die grossen Sterne und zieht die
+Verbrauchsmengen ab. Historische Daumen-Daten dürfen kein Modell aktivieren
+und die Evaluation nicht beeinflussen.

@@ -63,7 +63,7 @@ Vorrat erfassen → SQLite → Wissensbasis (filtert, ersetzt, begründet) → M
 - Ontologie mit ca. 65 Klassen und 10 Ersatzregeln, 18 selbst geschriebene Rezepte.
 - Ranking: regelbasierte Baseline, logistische Regression ab 20 Bewertungen (beim App-Start trainiert).
 - Startseite: Vorrat links, Menüs und Einkaufsideen rechts. Einkaufsideen lassen sich direkt mit vorgeschlagener Menge, Einheit und Ablaufdatum in den eigenen Vorrat übernehmen.
-- Vorab-Rückmeldung mit Daumen hoch/runter (Trainingsgewicht 1). "Gekocht" verwendet 1–5 Sterne (Trainingsgewicht 3), zieht Verbrauchsmengen ab und behält den Restbestand.
+- Ausschliesslich Bewertungen nach dem Kochen: 1–5 Sterne, Mengenabzug und Restbestand. Keine Vorab-Rückmeldung. ML-Training und Evaluation ignorieren historische Daumen-Bewertungen (`gekocht = 0` oder fehlend); das Minimum sind 20 brauchbare Kochbewertungen.
 - Offene Aufgaben pro Person: `docs/fahrplan.md`.
 
 ## Arbeitsweise

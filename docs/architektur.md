@@ -8,9 +8,7 @@ flowchart TD
     B --> C[Wissensbasis: filtert, ersetzt, begründet<br>wissensbasis/eignung.py]
     C --> D[Ranking: sortiert Kandidaten<br>ml/ranking.py]
     D --> E[Top 3 mit Begründung<br>app/vorschlaege.py]
-    E --> F[Daumen hoch/runter + Vorrat-Snapshot]
     E --> K[Gekocht: Bewertung + Vorrat abbauen]
-    F --> B
     K --> B
     C --> H[Einkaufsideen: Rezepte mit genau einer Lücke<br>app/vorrat.py]
     D --> H
@@ -73,7 +71,7 @@ Auch hier gilt: Die Wissensbasis entscheidet, welche Einkäufe in Frage kommen, 
 
 - **Aufgabe**: Pointwise Learning to Rank. Die logistische Regression schätzt pro Rezept und Vorratssituation die Wahrscheinlichkeit einer guten Bewertung (Note ≥ 4) und sortiert danach.
 - **Merkmale**: Situation (Dringlichkeit, Abdeckung, Anzahl Ersetzungen) und Rezept (Kochzeit, enthaltene Kategorien). Die Kategorie-Merkmale kommen aus der Ontologie und erlauben es dem Modell, Vorlieben zu lernen, die keine Regel abbildet (z.B. "mag Teigwaren, mag keinen Fisch").
-- **Labels**: Bewertungen aus der App (Note ≥ 4 = gut), auch die aus dem "Gekocht"-Dialog. Vorab-Rückmeldungen (Daumen hoch/runter) zählen mit Trainingsgewicht 1, Bewertungen nach dem Kochen mit Gewicht 3. Die Merkmale werden beim Training aus dem gespeicherten Vorrat-Snapshot neu berechnet.
+- **Labels**: Ausschliesslich Sternebewertungen nach dem Kochen (`gekocht = 1`, Note ≥ 4 = gut). Historische Vorab-Bewertungen und unmarkierte Datensätze sind ausgeschlossen. Die Merkmale werden aus dem gespeicherten Vorrat-Snapshot neu berechnet. Das Minimum von 20 Datensätzen zählt nur brauchbare Kochbewertungen; der Modellcache zählt ebenfalls nur Kochbewertungen.
 - **Evaluation**: zeitlicher Split 80/20, Metrik Top-3-Trefferquote, immer im Vergleich zur Baseline (`python -m ml.trainiere`).
 
 ## Entscheide
