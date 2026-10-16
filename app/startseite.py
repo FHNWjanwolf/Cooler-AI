@@ -34,7 +34,8 @@ with links:
                     st.caption(f"🟠 Läuft in {eintrag.tage} Tagen ab")
                 else:
                     st.caption(f"Läuft in {eintrag.tage} Tagen ab")
-    st.caption("Immer vorhanden: " + ", ".join(wb.grundstock()))
+    st.caption("Grundstock: " + (", ".join(wb.grundstock()) or "keine Zutaten ausgewählt"))
+    st.page_link("app/haushalt.py", label="Grundstock anpassen", icon="🧂")
 
 with rechts:
     st.subheader("Deine Menüvorschläge")

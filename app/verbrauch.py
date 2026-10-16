@@ -16,8 +16,9 @@ def umrechnen(menge, von, nach):
 def verbrauchsplan(rezept, vorrat, wb):
     """{ID: Verbrauch oder None}, ohne den Vorrat zu ändern.
 
-    None verlangt eine manuelle Entscheidung: Mengen oder Einheiten fehlen bzw.
-    sind nicht vergleichbar. Ersatzregeln enthalten keine Mengenverhältnisse.
+    None verlangt eine manuelle Entscheidung: Rezeptmengen oder vergleichbare
+    Einheiten fehlen. Bei Ersatzprodukten dient die Rezeptmenge als Vorschlag.
+    Fehlmengen bleiben im Vorschlag sichtbar, statt die Rezeptmenge zu kürzen.
     """
     plan = {}
     for zutat in rezept["zutaten"]:
@@ -35,17 +36,20 @@ def verbrauchsplan(rezept, vorrat, wb):
                      artikel["zutat"] if ersatz else zutat["zutat"])]
         passende.sort(key=lambda v: v["tage"] if v["tage"] is not None else 10_000)
         rest = zutat["menge"]
-        for v in passende:
+        for position, v in enumerate(passende):
             bedarf = umrechnen(rest, zutat["einheit"], v.get("einheit"))
-            if ersatz or bedarf is None or v.get("menge") is None:
+            if bedarf is None:
                 plan[v["id"]] = None
                 break
             bereits = plan.get(v["id"], 0.0)
             if bereits is None:
                 break
-            menge = min(bedarf, max(0.0, v["menge"] - bereits))
+            if v.get("menge") is None or position == len(passende) - 1:
+                menge = bedarf
+            else:
+                menge = min(bedarf, max(0.0, v["menge"] - bereits))
             plan[v["id"]] = bereits + menge
             rest -= umrechnen(menge, v["einheit"], zutat["einheit"])
-            if rest <= 0:
+            if rest <= 1e-9:
                 break
     return plan

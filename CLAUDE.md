@@ -38,11 +38,12 @@ Vorrat erfassen → SQLite → Wissensbasis (filtert, ersetzt, begründet) → M
 
 ## Wichtige Konzepte der Wissensbasis
 
-- Zutatenhierarchie über `rdfs:subClassOf` (Cherrytomate → Tomate → Gemüse). Eigenschaften (Einheit, Haltbarkeit, Grundstock, vegetarisch) werden entlang der Hierarchie vererbt.
+- Zutatenhierarchie über `rdfs:subClassOf` (Cherrytomate → Tomate → Gemüse). Einheit, Haltbarkeit und vegetarisch werden entlang der Hierarchie vererbt. Der Grundstock wird explizit pro Haushalt ausgewählt, nicht vererbt.
 - Ersatzregeln mit Begründung (Rahm → Crème fraîche), in der App angezeigt.
 - Pflicht- vs. optionale Zutaten (Feld `pflicht` in `daten/rezepte.json`).
 - Haltbarkeit: effektives Ablaufdatum = früheres von Etikett und Öffnungsdatum + `haltbarOffenTage`.
-- Grundstock (Salz, Öl, Gewürze) gilt als immer vorhanden und wird nicht erfasst.
+- Grundstock: explizite Standardliste in `wissensbasis/grundstock.py`, pro Person auf der Seite Grundstock anpassbar. Nur die ausgewählten konkreten Zutaten gelten ohne Mengen als vorhanden.
+- Künstliche Vorräte: getrennte gespeicherte Testszenarien in `daten/testszenarien/`, mit konkreten Mengen, festen Ablaufdaten und Stichtag; keine Nutzerdaten. Prüfung mit `python -m app.testszenarien`.
 
 ## Offene Entscheide (nicht eigenmächtig festlegen, nachfragen)
 
@@ -62,7 +63,7 @@ Vorrat erfassen → SQLite → Wissensbasis (filtert, ersetzt, begründet) → M
 - Ontologie mit ca. 65 Klassen und 10 Ersatzregeln, 18 selbst geschriebene Rezepte.
 - Ranking: regelbasierte Baseline, logistische Regression ab 20 Bewertungen (beim App-Start trainiert).
 - Startseite: Vorrat links, Menüs und Einkaufsideen rechts. Einkaufsideen lassen sich direkt mit vorgeschlagener Menge, Einheit und Ablaufdatum in den eigenen Vorrat übernehmen.
-- Vorab-Rückmeldung mit Daumen hoch/runter (Trainingsgewicht 1). "Gekocht" behält die 1–5-Bewertung (Trainingsgewicht 3), zieht Verbrauchsmengen ab und behält den Restbestand.
+- Vorab-Rückmeldung mit Daumen hoch/runter (Trainingsgewicht 1). "Gekocht" verwendet 1–5 Sterne (Trainingsgewicht 3), zieht Verbrauchsmengen ab und behält den Restbestand.
 - Offene Aufgaben pro Person: `docs/fahrplan.md`.
 
 ## Arbeitsweise

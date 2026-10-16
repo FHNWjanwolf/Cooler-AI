@@ -7,6 +7,8 @@ import pytest
 from app.datenbank import (aktualisiere, fuege_hinzu, koche, lade_bewertungen, lade_vorrat, loesche, normalisiere_person,
                            speichere_bewertung, verbinde, vorrat_als_liste)
 from wissensbasis.wissen import Wissensbasis
+from wissensbasis.grundstock import STANDARD_GRUNDSTOCK
+from app.datenbank import lade_grundstock, speichere_grundstock
 
 
 @pytest.fixture(params=["sqlite3", "libsql"])
@@ -47,7 +49,8 @@ def test_bewertung_speichern_und_laden(conn):
     speichere_bewertung(conn, "anna", "spaghetti_carbonara", 5, [{"zutat": "Ei", "tage": 3}])
     assert lade_bewertungen(conn) == [
         {"person": "anna", "rezept_id": "spaghetti_carbonara", "datum": date.today().isoformat(),
-         "note": 5, "vorrat": [{"zutat": "Ei", "tage": 3}], "gekocht": False}
+         "note": 5, "vorrat": [{"zutat": "Ei", "tage": 3}], "gekocht": False,
+         "grundstock": sorted(STANDARD_GRUNDSTOCK)}
     ]
 
 
@@ -103,6 +106,7 @@ def test_alte_datenbank_bekommt_spalte_gekocht(tmp_path, monkeypatch):
 
     conn = verbinde(pfad)
     assert lade_bewertungen(conn)[0]["gekocht"] is False
+    assert lade_bewertungen(conn)[0]["grundstock"] is None
 
 
 def test_kochen_behaelt_restmenge_und_snapshot(conn):
@@ -169,3 +173,38 @@ def test_geaenderte_einheit_waehrend_gekocht_dialog_wird_abgelehnt(conn):
         koche(conn, "anna", "test", 5, vorher, {eintrag_id: 300})
     assert lade_bewertungen(conn) == []
     assert lade_vorrat(conn, "anna", wb).loc[eintrag_id, "menge"] == 800
+
+
+def test_grundstock_pro_person_auch_leere_auswahl(conn):
+    wb = Wissensbasis()
+    assert lade_grundstock(conn, "anna") == list(STANDARD_GRUNDSTOCK)
+    speichere_grundstock(conn, "anna", [], wb)
+    assert lade_grundstock(conn, "anna") == []
+    assert lade_grundstock(conn, "ben") == list(STANDARD_GRUNDSTOCK)
+    speichere_grundstock(conn, "anna", ["Salz", "Olivenoel"], wb)
+    assert lade_grundstock(conn, "anna") == ["Olivenoel", "Salz"]
+    with pytest.raises(ValueError):
+        speichere_grundstock(conn, "anna", ["Gewuerz"], wb)
+    assert lade_grundstock(conn, "anna") == ["Olivenoel", "Salz"]
+
+
+def test_grundstock_snapshot_bleibt_nach_aenderung_erhalten(conn):
+    wb = Wissensbasis()
+    speichere_grundstock(conn, "anna", ["Pfeffer"], wb)
+    speichere_bewertung(conn, "anna", "test", 5, [])
+    koche(conn, "anna", "test", 4, [], {})
+    speichere_grundstock(conn, "anna", [], wb)
+    assert [b["grundstock"] for b in lade_bewertungen(conn)] == [["Pfeffer"], ["Pfeffer"]]
+    speichere_bewertung(conn, "anna", "test", 1, [], grundstock=[])
+    assert lade_bewertungen(conn)[-1]["grundstock"] == []
+
+
+def test_migration_bestehender_bewertungen_und_wiederholte_einrichtung(conn):
+    from app.datenbank import richte_ein
+
+    conn.execute("INSERT INTO bewertung (person, rezept_id, datum, note, vorrat_snapshot) "
+                 "VALUES ('anna', 'alt', '2026-10-01', 4, '[]')")
+    conn.commit()
+    richte_ein(conn)
+    richte_ein(conn)
+    assert lade_bewertungen(conn)[0]["grundstock"] is None
