@@ -122,6 +122,26 @@ Vor einem späteren Prod-Rollout auf Test prüfen:
   und Prüfung dürfen keine echten Bestände oder Bewertungen verändern.
 - `python -m app.testszenarien` und `pytest` müssen erfolgreich sein.
 
+## Cloud-Update: alte importierte Module
+
+Wenn nach einem Git-Update neue Seiten vorhanden sind, aber importierte
+Funktionen fehlen oder der alte Kochdialog erscheint, kann im Streamlit-Prozess
+noch ein früher importierter Modulstand liegen. Ein reiner Seiten-Rerun lädt
+diese Module nicht zuverlässig neu.
+
+`requirements.txt` fixiert den getesteten Stand Streamlit 1.66.0. Die Änderung
+dieser Datei löst beim Rollout einen vollständigen Cloud-Neubau mit frischem
+Python-Prozess aus. Nach Änderungen an importierten Modulen den Laufzeitstand
+auf der Test-App prüfen; ein grüner GitHub-Testlauf bestätigt allein noch nicht
+den laufenden Cloud-Prozess. Falls die Cloud den Neubau nicht abschliesst,
+unter «Manage app» → «Reboot app» neu starten und die Build-Logs prüfen.
+
+Prüffall: 350 ml Halbrahm und 800 g Kartoffeln. Kartoffelgratin schlägt
+300 ml Halbrahm (Rahm plus Milch-Ersatz) und 600 g Kartoffeln vor. Mit vier
+Sternen speichern: 50 ml Halbrahm und 200 g Kartoffeln bleiben übrig. Bei nur
+200 g erfassten Kartoffeln bleibt die Rezeptvorgabe 600 g sichtbar, und die
+Fehlmenge muss vor dem Speichern korrigiert werden.
+
 ## Warum Turso
 
 Die Streamlit Cloud behält keine Dateien: Bei jedem Neustart oder Deploy wäre eine lokale `cooler_ai.db` leer. In Prod sind die Bewertungen aber unsere Trainingsdaten. Turso ist SQLite in der Cloud (gleiches SQL, gleiches Schema), der Gratis-Plan reicht für das Projekt.

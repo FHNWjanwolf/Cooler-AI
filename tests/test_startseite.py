@@ -178,3 +178,39 @@ def test_testszenario_seite_verwendet_keine_nutzerdatenbank(app_db, monkeypatch)
         assert not at.feedback
     assert lade_vorrat(app_db, "anna", Wissensbasis()).empty
     assert lade_bewertungen(app_db) == []
+
+
+@pytest.mark.parametrize("kartoffeln", [200, 800])
+def test_gratin_mit_halbrahm_zeigt_sterne_und_rezeptmengen(app_db, kartoffeln):
+    fuege_hinzu(app_db, "anna", "Kartoffel", kartoffeln, "g", None)
+    fuege_hinzu(app_db, "anna", "Halbrahm", 350, "ml", None)
+    at = AppTest.from_string("""
+from app.rezeptansicht import gekocht_dialog
+from app.datenbank import lade_vorrat, vorrat_als_liste
+from app.ressourcen import verbindung, wissensbasis
+from wissensbasis.eignung import finde_kandidaten, lade_rezepte
+wb = wissensbasis()
+vorrat = vorrat_als_liste(lade_vorrat(verbindung(), 'anna', wb))
+kandidat = next(k for k in finde_kandidaten(lade_rezepte(), vorrat, wb)
+                if k['rezept']['id'] == 'kartoffelgratin')
+gekocht_dialog(kandidat, vorrat)
+""")
+    at.session_state.person = "anna"
+    at.run()
+    assert not at.exception
+    vorher = lade_vorrat(app_db, "anna", Wissensbasis())
+    ids = {r.zutat: int(r.Index) for r in vorher.itertuples()}
+    assert at.number_input(key=f"verbrauch_kartoffelgratin_{ids['Kartoffel']}").value == 600
+    # 150 ml Rahm und 150 ml Milch-Ersatz aus derselben Packung.
+    assert at.number_input(key=f"verbrauch_kartoffelgratin_{ids['Halbrahm']}").value == 300
+    assert not at.select_slider
+    at.feedback(key="sterne_anna_kartoffelgratin").set_value(3).run()
+    speichern = next(b for b in at.button if b.label == "Speichern")
+    assert speichern.disabled == (kartoffeln < 600)
+    if kartoffeln >= 600:
+        speichern.click().run()
+        assert not at.exception
+        nachher = lade_vorrat(app_db, "anna", Wissensbasis())
+        assert nachher.loc[ids["Kartoffel"], "menge"] == 200
+        assert nachher.loc[ids["Halbrahm"], "menge"] == 50
+        assert lade_bewertungen(app_db)[0]["note"] == 4
