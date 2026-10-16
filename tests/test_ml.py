@@ -1,8 +1,9 @@
 """Tests für Ranking und Training (mit künstlichen Bewertungen, nur zum Prüfen der Mechanik)."""
 import numpy as np
+import pytest
 
 from ml.ranking import einkaufsideen, sortiere
-from ml.trainiere import erstelle_datensatz, top3_trefferquote, trainiere
+from ml.trainiere import erstelle_datensatz, top3_trefferquote, trainiere, trainiere_falls_moeglich
 from wissensbasis.eignung import lade_rezepte
 from wissensbasis.wissen import Wissensbasis
 
@@ -34,7 +35,7 @@ def test_training_lernt_vorliebe():
                 note = 1
             else:
                 note = 3
-            bewertungen.append({"rezept_id": r["id"], "note": note, "vorrat": vorrat})
+            bewertungen.append({"rezept_id": r["id"], "note": note, "gekocht": True, "vorrat": vorrat})
 
     X, y = erstelle_datensatz(bewertungen, rezepte, wb)
     assert len(X) == len(y) > 0
@@ -45,26 +46,40 @@ def test_training_lernt_vorliebe():
     assert quote == 1.0  # alle Teigwaren-Rezepte landen oben
 
 
-def test_gekocht_zaehlt_staerker_als_widersprechender_daumen():
+def test_vorab_und_unmarkierte_bewertungen_werden_ignoriert():
     wb = Wissensbasis()
     rezepte = lade_rezepte()
     vorrat = [{"zutat": z, "tage": 10} for z in ["Kartoffel", "Rahm", "Milch"]]
-    bewertungen = [
-        {"rezept_id": "kartoffelgratin", "note": 1, "gekocht": False, "vorrat": vorrat},
-        {"rezept_id": "kartoffelgratin", "note": 5, "gekocht": True, "vorrat": vorrat},
-    ]
-    X, y, gewichte = erstelle_datensatz(bewertungen, rezepte, wb, mit_gewichten=True)
-    assert y == [0, 1] and gewichte == [1, 3]
-    modell = trainiere(bewertungen, rezepte, wb)
-    assert modell.predict_proba(X)[0, 1] > 0.7
+    basis = {"rezept_id": "kartoffelgratin", "vorrat": vorrat}
+    vorab = [{**basis, "note": 1, "gekocht": False}, {**basis, "note": 5}]
+    kochen = [{**basis, "note": 5, "gekocht": True}]
+    X, y = erstelle_datensatz(vorab + kochen, rezepte, wb)
+    assert len(X) == 1 and y == [1]
+    with pytest.raises(ValueError):
+        trainiere(vorab + kochen, rezepte, wb)  # Vorab liefert keine zweite Klasse.
+    _, n, _ = top3_trefferquote(vorab, rezepte, wb, None)
+    assert n == 0
+
+
+def test_ml_minimum_zaehlt_nur_brauchbare_kochbewertungen():
+    wb = Wissensbasis()
+    rezepte = lade_rezepte()
+    basis = {"rezept_id": "kartoffelgratin", "vorrat": [
+        {"zutat": z, "tage": 10} for z in ["Kartoffel", "Rahm", "Milch"]]}
+    vorab = [{**basis, "note": 5, "gekocht": False}] * 100
+    gekocht = [{**basis, "note": 5 if i % 2 else 1, "gekocht": True} for i in range(20)]
+    assert trainiere_falls_moeglich(vorab + gekocht[:19], rezepte, wb) is None
+    unbrauchbar = [{**basis, "rezept_id": "geloescht", "note": 5, "gekocht": True}] * 30
+    assert trainiere_falls_moeglich(unbrauchbar + gekocht[:19], rezepte, wb) is None
+    assert trainiere_falls_moeglich(vorab + gekocht, rezepte, wb) is not None
 
 
 def test_training_nutzt_grundstock_zum_bewertungszeitpunkt():
     wb = Wissensbasis().mit_grundstock([])
     vorrat = [{"zutat": z, "tage": 10} for z in ["Spaghetti", "Ei", "Speck", "Parmesan"]]
     bewertungen = [
-        {"rezept_id": "spaghetti_carbonara", "note": 4, "vorrat": vorrat, "grundstock": ["Pfeffer"]},
-        {"rezept_id": "spaghetti_carbonara", "note": 1, "vorrat": vorrat, "grundstock": []},
+        {"rezept_id": "spaghetti_carbonara", "note": 4, "gekocht": True, "vorrat": vorrat, "grundstock": ["Pfeffer"]},
+        {"rezept_id": "spaghetti_carbonara", "note": 1, "gekocht": True, "vorrat": vorrat, "grundstock": []},
     ]
     X, y = erstelle_datensatz(bewertungen, lade_rezepte(), wb)
     assert len(X) == 1 and y == [1]  # Zweite Situation fehlt der Pfeffer.

@@ -20,15 +20,15 @@ from wissensbasis.wissen import lade_wissensbasis
 
 MIN_BEWERTUNGEN = 20
 GUT_AB_NOTE = 4
-GEWICHT_VORAB = 1.0
-GEWICHT_GEKOCHT = 3.0
 
 
-def erstelle_datensatz(bewertungen, rezepte, wb, mit_gewichten=False):
-    """Merkmale und Labels; optional Gewichte für Vorab- und Kochbewertungen."""
+def erstelle_datensatz(bewertungen, rezepte, wb):
+    """Nur tatsächliche Kochbewertungen liefern Merkmale und Labels fürs ML."""
     nach_id = {r["id"]: r for r in rezepte}
-    X, y, gewichte = [], [], []
+    X, y = [], []
     for b in bewertungen:
+        if not b.get("gekocht", False):
+            continue
         rezept = nach_id.get(b["rezept_id"])
         if rezept is None:
             continue  # Rezept wurde inzwischen gelöscht
@@ -38,26 +38,29 @@ def erstelle_datensatz(bewertungen, rezepte, wb, mit_gewichten=False):
             continue  # Wissensbasis wurde geändert, Rezept wäre heute nicht mehr geeignet
         X.append(pruefung["merkmale"])
         y.append(int(b["note"] >= GUT_AB_NOTE))
-        gewichte.append(GEWICHT_GEKOCHT if b.get("gekocht", False) else GEWICHT_VORAB)
-    return (X, y, gewichte) if mit_gewichten else (X, y)
+    return X, y
 
 
 def trainiere(bewertungen, rezepte, wb):
-    X, y, gewichte = erstelle_datensatz(bewertungen, rezepte, wb, mit_gewichten=True)
+    X, y = erstelle_datensatz(bewertungen, rezepte, wb)
+    return _trainiere_datensatz(X, y)
+
+
+def _trainiere_datensatz(X, y):
     if len(set(y)) < 2:
         raise ValueError("Es braucht gute UND schlechte Bewertungen, sonst gibt es nichts zu lernen.")
     modell = neues_modell()
-    modell.fit(X, y, standardscaler__sample_weight=gewichte,
-               logisticregression__sample_weight=gewichte)
+    modell.fit(X, y)
     return modell
 
 
 def trainiere_falls_moeglich(bewertungen, rezepte, wb):
     """Modell für die App, oder None, wenn es (noch) zu wenig brauchbare Bewertungen gibt."""
-    if len(bewertungen) < MIN_BEWERTUNGEN:
+    X, y = erstelle_datensatz(bewertungen, rezepte, wb)
+    if len(X) < MIN_BEWERTUNGEN:
         return None
     try:
-        return trainiere(bewertungen, rezepte, wb)
+        return _trainiere_datensatz(X, y)
     except ValueError:
         return None  # nur gute oder nur schlechte Bewertungen
 
@@ -69,7 +72,7 @@ def top3_trefferquote(test_bewertungen, rezepte, wb, modell):
     """
     treffer = situationen = trivial = 0
     for b in test_bewertungen:
-        if b["note"] < GUT_AB_NOTE:
+        if not b.get("gekocht", False) or b["note"] < GUT_AB_NOTE:
             continue
         kontext = wb.mit_grundstock(b["grundstock"]) if b.get("grundstock") is not None else wb
         kandidaten = finde_kandidaten(rezepte, b["vorrat"], kontext)
@@ -86,10 +89,10 @@ def top3_trefferquote(test_bewertungen, rezepte, wb, modell):
 def main():
     wb = lade_wissensbasis()
     rezepte = lade_rezepte()
-    bewertungen = lade_bewertungen(verbinde())
-    print(f"{len(bewertungen)} Bewertungen gefunden.")
+    bewertungen = lade_bewertungen(verbinde(), nur_gekocht=True)
+    print(f"{len(bewertungen)} Kochbewertungen gefunden.")
     if len(bewertungen) < MIN_BEWERTUNGEN:
-        print(f"Zu wenig Daten: mindestens {MIN_BEWERTUNGEN} Bewertungen sammeln, dann erneut starten.")
+        print(f"Zu wenig Daten: mindestens {MIN_BEWERTUNGEN} Kochbewertungen sammeln, dann erneut starten.")
         return
 
     # --- Evaluation mit zeitlichem Split (kein Zufall: wir testen auf "späteren" Situationen)
