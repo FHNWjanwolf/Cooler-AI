@@ -1,4 +1,6 @@
-streamlit>=1.40
+# Getesteter Runtime-Stand. Die Änderung löst auch einen Cloud-Neubau aus,
+# damit nach dem Release keine alten Python-Module im Prozess verbleiben.
+streamlit==1.66.0
 pandas>=2.0
 scikit-learn>=1.4
 rdflib>=7.0
