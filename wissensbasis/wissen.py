@@ -8,10 +8,12 @@ Zutaten werden überall mit ihrer ID angesprochen, z.B. "Cherrytomate"
 (= lokaler Name der OWL-Klasse).
 """
 from datetime import timedelta
+from copy import copy
 from functools import cache
 from pathlib import Path
 
 from rdflib import Graph
+from wissensbasis.grundstock import STANDARD_GRUNDSTOCK
 
 ONTOLOGIE = Path(__file__).with_name("cooler_ai.ttl")
 NS = "http://example.org/cooler-ai#"
@@ -59,7 +61,7 @@ class Wissensbasis:
             SELECT ?klasse ?eigenschaft ?wert WHERE {
                 ?klasse ?eigenschaft ?wert .
                 FILTER (?eigenschaft IN (:einheit, :haltbarTage, :haltbarOffenTage,
-                                         :grundstock, :vegetarisch))
+                                         :vegetarisch))
             }"""):
             self._werte[(_id(zeile.klasse), _id(zeile.eigenschaft))] = zeile.wert.toPython()
 
@@ -74,6 +76,17 @@ class Wissensbasis:
                            :begruendung ?begruendung .
                 }""")
         ]
+
+        self.grundstock_ids = frozenset(STANDARD_GRUNDSTOCK)
+
+    def mit_grundstock(self, zutaten):
+        """Eigener Haushaltskontext, ohne die gemeinsam geladene Wissensbasis zu ändern."""
+        zutaten = frozenset(zutaten)
+        if not zutaten <= set(self.zutaten_zur_auswahl(ohne_grundstock=False)):
+            raise ValueError("Der Grundstock darf nur bekannte konkrete Zutaten enthalten.")
+        kontext = copy(self)
+        kontext.grundstock_ids = zutaten
+        return kontext
 
     # ------------------------------------------------------------ Hierarchie
 
@@ -103,26 +116,29 @@ class Wissensbasis:
 
     def eigenschaft(self, zutat, name):
         """Wert einer Eigenschaft. Fehlt er, gilt der Wert der nächsten Oberkategorie."""
+        if name == "grundstock":
+            return self.ist_grundstock(zutat)
         for k in self.vorfahren(zutat):
             if (k, name) in self._werte:
                 return self._werte[(k, name)]
         return None
 
     def ist_grundstock(self, zutat):
-        return self.eigenschaft(zutat, "grundstock") is True
+        # Ein explizit vorhandenes Olivenöl erfüllt "Öl", aber kein anderes Öl.
+        return any(self.ist_ein(vorhanden, zutat) for vorhanden in self.grundstock_ids)
 
     def ist_vegetarisch(self, zutat):
         return self.eigenschaft(zutat, "vegetarisch") is not False
 
-    def zutaten_zur_auswahl(self):
+    def zutaten_zur_auswahl(self, ohne_grundstock=True):
         """Konkrete Zutaten (Klassen ohne Unterklassen), die man im Vorrat erfassen kann."""
         hat_kinder = {e for liste in self.eltern.values() for e in liste}
-        blaetter = [k for k in self.namen if k not in hat_kinder and not self.ist_grundstock(k)]
+        blaetter = [k for k in self.namen if k not in hat_kinder
+                    and (not ohne_grundstock or not self.ist_grundstock(k))]
         return sorted(blaetter, key=lambda k: _sortierschluessel(self.namen[k]))
 
     def grundstock(self):
-        hat_kinder = {e for liste in self.eltern.values() for e in liste}
-        namen = [self.namen[k] for k in self.namen if k not in hat_kinder and self.ist_grundstock(k)]
+        namen = [self.namen[k] for k in self.grundstock_ids]
         return sorted(namen, key=_sortierschluessel)
 
     # ------------------------------------------------------------ Ersatz und Haltbarkeit

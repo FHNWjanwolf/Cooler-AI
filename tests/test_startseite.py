@@ -36,7 +36,8 @@ def test_anmeldung_startet_auf_startseite_und_vorrat_ist_erreichbar(app_db):
     assert not at.exception
     assert at.session_state.person == "anna"
     assert {s.value for s in at.subheader} >= {"Dein Vorrat", "Deine Menüvorschläge", "Einkaufsideen"}
-    assert len(at.columns) == 2
+    assert at.columns[0].subheader[0].value == "Dein Vorrat"
+    assert at.columns[1].subheader[0].value == "Deine Menüvorschläge"
     next(b for b in at.button if b.label == "Vorrat anpassen").click().run()
     assert not at.exception
     assert at.title[0].value == "Vorrat"
@@ -131,3 +132,49 @@ def test_einheit_und_menge_im_editor_anpassen(app_db, monkeypatch):
     assert not at.exception
     brokkoli = lade_vorrat(app_db, "anna", Wissensbasis()).iloc[0]
     assert brokkoli["menge"] == 0.8 and brokkoli["einheit"] == "kg"
+
+
+def test_grundstock_anpassen_ohne_andere_personen_zu_aendern(app_db):
+    from app.datenbank import lade_grundstock
+    from wissensbasis.grundstock import STANDARD_GRUNDSTOCK
+
+    for z, m, e in [("Spaghetti", 200, "g"), ("Ei", 2, "Stück"),
+                     ("Parmesan", 40, "g"), ("Speck", 100, "g")]:
+        fuege_hinzu(app_db, "anna", z, m, e, None)
+    at = startseite()
+    assert any(s.value == "Spaghetti Carbonara" for s in at.subheader)
+    at.switch_page("app/haushalt.py").run()
+    at.multiselect[0].set_value([])
+    next(b for b in at.button if b.label == "Grundstock speichern").click().run()
+    assert not at.exception
+    assert lade_grundstock(app_db, "anna") == []
+    assert lade_grundstock(app_db, "ben") == list(STANDARD_GRUNDSTOCK)
+    at.switch_page("app/startseite.py").run()
+    assert not any(s.value == "Spaghetti Carbonara" for s in at.subheader)
+    assert any(b.key == "einkauf_Pfeffer" for b in at.button)
+    at.switch_page("app/vorrat.py").run()
+    at.selectbox(key="erfassen_zutat").select("Pfeffer").run()
+    assert not at.exception
+    assert at.selectbox(key="erfassen_einheit_Pfeffer").value == "g"
+    at.switch_page("app/haushalt.py").run()
+    next(b for b in at.button if b.label == "Standardliste wiederherstellen").click().run()
+    assert not at.exception
+    assert set(lade_grundstock(app_db, "anna")) == set(STANDARD_GRUNDSTOCK)
+
+
+def test_testszenario_seite_verwendet_keine_nutzerdatenbank(app_db, monkeypatch):
+    at = startseite()
+
+    def kein_datenbankzugriff():
+        raise AssertionError("Testszenario darf nicht auf Nutzerdaten zugreifen")
+
+    monkeypatch.setattr(ressourcen, "verbindung", kein_datenbankzugriff)
+    at.switch_page("app/szenarien_seite.py").run()
+    assert not at.exception
+    for index in range(3):
+        at.selectbox[0].select_index(index).run()
+        assert not at.exception
+        assert at.success
+        assert not at.feedback
+    assert lade_vorrat(app_db, "anna", Wissensbasis()).empty
+    assert lade_bewertungen(app_db) == []

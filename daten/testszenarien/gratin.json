@@ -1,0 +1,10 @@
+{
+  "id": "gratin", "titel": "Kartoffelgratin mit Restbestand", "datum": "2026-10-16",
+  "grundstock": ["Salz", "Pfeffer", "Currypulver", "Bouillon", "Olivenoel", "Rapsoel", "Mehl", "Zucker"],
+  "zutaten": [
+    {"zutat": "Kartoffel", "menge": 800, "einheit": "g", "ablaufdatum": "2026-10-17", "geoeffnet_am": null},
+    {"zutat": "Rahm", "menge": 200, "einheit": "ml", "ablaufdatum": "2026-10-22", "geoeffnet_am": "2026-10-15"},
+    {"zutat": "Milch", "menge": 200, "einheit": "ml", "ablaufdatum": "2026-10-20", "geoeffnet_am": null}
+  ],
+  "erwartete_rezepte": ["kartoffelgratin"]
+}

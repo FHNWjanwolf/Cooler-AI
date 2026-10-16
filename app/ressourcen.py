@@ -6,7 +6,7 @@ Seitenaufruf neu geöffnet, weil Turso unbenutzte Verbindungen nach ca. 10 Sekun
 """
 import streamlit as st
 
-from app.datenbank import SCHEMA, lade_bewertungen, oeffne, richte_ein
+from app.datenbank import SCHEMA, lade_bewertungen, lade_grundstock, oeffne, richte_ein
 from ml.trainiere import trainiere_falls_moeglich
 from wissensbasis.eignung import lade_rezepte
 from wissensbasis.wissen import Wissensbasis
@@ -28,15 +28,27 @@ def verbindung():
 
 
 @st.cache_resource
-def wissensbasis():
+def _basis():
     return Wissensbasis()
+
+
+def wissensbasis():
+    """Haushaltskontext pro Aufruf; keine Nutzerpräferenzen im gemeinsamen Cache."""
+    person = st.session_state.get("person")
+    if not person:
+        return _basis()
+    conn = verbindung()
+    try:
+        return _basis().mit_grundstock(lade_grundstock(conn, person))
+    finally:
+        conn.close()
 
 
 @st.cache_resource(max_entries=1)
 def _modell_fuer(anzahl_bewertungen):
     # anzahl_bewertungen dient nur als Schlüssel für den Cache:
     # Sobald eine neue Bewertung dazukommt, wird neu trainiert.
-    return trainiere_falls_moeglich(lade_bewertungen(verbindung()), lade_rezepte(), wissensbasis())
+    return trainiere_falls_moeglich(lade_bewertungen(verbindung()), lade_rezepte(), _basis())
 
 
 def ml_modell():

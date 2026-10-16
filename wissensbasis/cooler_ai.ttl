@@ -30,9 +30,6 @@
 :haltbarOffenTage a owl:AnnotationProperty ;
     rdfs:comment "Haltbarkeit nach dem Öffnen in Tagen."@de .
 
-:grundstock a owl:AnnotationProperty ;
-    rdfs:comment "true = gilt als immer vorhanden und wird nicht erfasst (Salz, Öl, Gewürze)."@de .
-
 :vegetarisch a owl:AnnotationProperty ;
     rdfs:comment "false bei Fleisch und Fisch. Wird an alle Unterklassen vererbt."@de .
 
@@ -168,22 +165,20 @@
 :Thon a owl:Class ; rdfs:subClassOf :Fisch ; rdfs:label "Thon (Dose)"@de ;
     :haltbarTage 730 ; :haltbarOffenTage 2 .
 
-# ------------------------------------------------------------------ Grundstock (immer vorhanden)
+# ------------------------------------------------------------------ Öle, Gewürze und Backzutaten
+# Haushalts-Grundstock: explizite Liste in wissensbasis/grundstock.py, nicht vererbt.
 
-:Oel a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Öl"@de ;
-    :grundstock true .
+:Oel a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Öl"@de ; :einheit "ml" .
 :Olivenoel a owl:Class ; rdfs:subClassOf :Oel ; rdfs:label "Olivenöl"@de .
 :Rapsoel a owl:Class ; rdfs:subClassOf :Oel ; rdfs:label "Rapsöl"@de .
 
-:Gewuerz a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Gewürz"@de ;
-    :grundstock true .
+:Gewuerz a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Gewürz"@de ; :einheit "g" .
 :Salz a owl:Class ; rdfs:subClassOf :Gewuerz ; rdfs:label "Salz"@de .
 :Pfeffer a owl:Class ; rdfs:subClassOf :Gewuerz ; rdfs:label "Pfeffer"@de .
 :Currypulver a owl:Class ; rdfs:subClassOf :Gewuerz ; rdfs:label "Currypulver"@de .
 :Bouillon a owl:Class ; rdfs:subClassOf :Gewuerz ; rdfs:label "Bouillon"@de .
 
-:Backzutat a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Backzutat"@de ;
-    :grundstock true .
+:Backzutat a owl:Class ; rdfs:subClassOf :Zutat ; rdfs:label "Backzutat"@de ; :einheit "g" .
 :Mehl a owl:Class ; rdfs:subClassOf :Backzutat ; rdfs:label "Mehl"@de .
 :Zucker a owl:Class ; rdfs:subClassOf :Backzutat ; rdfs:label "Zucker"@de .
 
