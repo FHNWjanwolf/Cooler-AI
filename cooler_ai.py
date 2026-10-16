@@ -2,11 +2,14 @@
 
 Start (im Hauptordner):  streamlit run cooler_ai.py
 """
+from pathlib import Path
+
 import streamlit as st
 
 from app.datenbank import normalisiere_person
 
 st.set_page_config(page_title="Cooler AI", page_icon="🥕", layout="wide")
+st.html("<style>" + (Path(__file__).parent / "app" / "sterne.css").read_text(encoding="utf-8") + "</style>")
 
 
 def anmelden():
