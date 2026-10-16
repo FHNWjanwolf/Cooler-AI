@@ -6,7 +6,7 @@ Mit "Gekocht" werden die verbrauchten Mengen vom Vorrat abgezogen.
 """
 import streamlit as st
 
-from app.datenbank import koche, speichere_bewertung, vorrat_als_liste
+from app.datenbank import koche, vorrat_als_liste
 from app import ressourcen
 from app.verbrauch import verbrauchsplan
 from ml.ranking import sortiere
@@ -120,19 +120,6 @@ def zeige_rezept(kandidat, vorrat):
             st.caption("Optional, aber nicht im Vorrat: " + ", ".join(kandidat["fehlend_optional"]))
         st.caption("Zutaten: " + zutaten_text(rezept))
 
-        st.write("Würdest du das gerne kochen?")
-        auswahl_key = f"interesse_{person}_{rezept['id']}"
-        auswahl = st.session_state.get(auswahl_key)
-        hoch, runter = st.columns(2)
-        for spalte, wert, text in [(hoch, 5, "👍 Ja"), (runter, 1, "👎 Nein")]:
-            if spalte.button(text, key=f"{auswahl_key}_{wert}", disabled=auswahl == wert):
-                speichere_bewertung(ressourcen.verbindung(), person, rezept["id"], wert, vorrat,
-                                   grundstock=kandidat.get("grundstock", sorted(wb.grundstock_ids)))
-                st.session_state[auswahl_key] = wert
-                st.rerun()
-        if auswahl is not None:
-            st.caption("Danke, deine Rückmeldung ist gespeichert.")
-
         if st.button("🍳 Gekocht", key=f"gekocht_{rezept['id']}",
                      help="Bewertet das Rezept und zieht die verbrauchten Mengen vom Vorrat ab."):
             # Bei jedem neuen Öffnen wieder mit den aktuellen Rezeptmengen
@@ -159,7 +146,7 @@ def zeige_vorschlaege(vorrat_df):
     modell = ressourcen.ml_modell()
     sortiert = sortiere(kandidaten, modell)
     if modell is None:
-        st.caption("Sortierung nach Resteverwertung. Mit genügend Rückmeldungen lernt die App eure Vorlieben.")
+        st.caption("Sortierung nach Resteverwertung. Mit genügend Kochbewertungen lernt die App eure Vorlieben.")
     else:
         st.caption("Sortierung nach euren Vorlieben und bisherigen Bewertungen.")
     if not sortiert:

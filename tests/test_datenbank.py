@@ -5,7 +5,7 @@ from datetime import date, timedelta
 import pytest
 
 from app.datenbank import (aktualisiere, fuege_hinzu, koche, lade_bewertungen, lade_vorrat, loesche, normalisiere_person,
-                           speichere_bewertung, verbinde, vorrat_als_liste)
+                           verbinde, vorrat_als_liste)
 from wissensbasis.wissen import Wissensbasis
 from wissensbasis.grundstock import STANDARD_GRUNDSTOCK
 from app.datenbank import lade_grundstock, speichere_grundstock
@@ -46,10 +46,10 @@ def test_jede_person_sieht_nur_ihren_vorrat(conn):
 
 
 def test_bewertung_speichern_und_laden(conn):
-    speichere_bewertung(conn, "anna", "spaghetti_carbonara", 5, [{"zutat": "Ei", "tage": 3}])
+    koche(conn, "anna", "spaghetti_carbonara", 5, [{"zutat": "Ei", "tage": 3}], {})
     assert lade_bewertungen(conn) == [
         {"person": "anna", "rezept_id": "spaghetti_carbonara", "datum": date.today().isoformat(),
-         "note": 5, "vorrat": [{"zutat": "Ei", "tage": 3}], "gekocht": False,
+         "note": 5, "vorrat": [{"zutat": "Ei", "tage": 3}], "gekocht": True,
          "grundstock": sorted(STANDARD_GRUNDSTOCK)}
     ]
 
@@ -191,11 +191,11 @@ def test_grundstock_pro_person_auch_leere_auswahl(conn):
 def test_grundstock_snapshot_bleibt_nach_aenderung_erhalten(conn):
     wb = Wissensbasis()
     speichere_grundstock(conn, "anna", ["Pfeffer"], wb)
-    speichere_bewertung(conn, "anna", "test", 5, [])
+    koche(conn, "anna", "test", 5, [], {})
     koche(conn, "anna", "test", 4, [], {})
     speichere_grundstock(conn, "anna", [], wb)
     assert [b["grundstock"] for b in lade_bewertungen(conn)] == [["Pfeffer"], ["Pfeffer"]]
-    speichere_bewertung(conn, "anna", "test", 1, [], grundstock=[])
+    koche(conn, "anna", "test", 1, [], {}, grundstock=[])
     assert lade_bewertungen(conn)[-1]["grundstock"] == []
 
 
@@ -208,3 +208,12 @@ def test_migration_bestehender_bewertungen_und_wiederholte_einrichtung(conn):
     richte_ein(conn)
     richte_ein(conn)
     assert lade_bewertungen(conn)[0]["grundstock"] is None
+
+
+def test_ml_abfrage_schliesst_historische_vorab_bewertungen_aus(conn):
+    conn.execute("INSERT INTO bewertung (person, rezept_id, datum, note, vorrat_snapshot, gekocht) "
+                 "VALUES ('anna', 'alt', '2026-10-01', 5, '[]', 0)")
+    conn.commit()
+    koche(conn, "anna", "gekocht", 4, [], {})
+    assert len(lade_bewertungen(conn)) == 2
+    assert [b["rezept_id"] for b in lade_bewertungen(conn, nur_gekocht=True)] == ["gekocht"]

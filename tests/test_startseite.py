@@ -1,4 +1,4 @@
-"""Startseite, Daumen-Rückmeldung und Einkauf durch die Oberfläche prüfen."""
+"""Startseite, Kochbewertungen und Einkauf durch die Oberfläche prüfen."""
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -44,7 +44,7 @@ def test_anmeldung_startet_auf_startseite_und_vorrat_ist_erreichbar(app_db):
     assert at.selectbox[0].label == "Zutat"
 
 
-def test_startseite_zeigt_nur_eigenen_vorrat_und_daumen(app_db):
+def test_startseite_zeigt_nur_eigenen_vorrat_ohne_vorab_bewertung(app_db):
     fuege_hinzu(app_db, "anna", "Kartoffel", 800, "g", date.today())
     fuege_hinzu(app_db, "anna", "Rahm", 200, "ml", None)
     fuege_hinzu(app_db, "anna", "Milch", 200, "ml", None)
@@ -54,15 +54,10 @@ def test_startseite_zeigt_nur_eigenen_vorrat_und_daumen(app_db):
     assert any("800 g" in m.value for m in at.markdown)
     assert not any("Banane" in m.value for m in at.markdown)
     assert not at.select_slider  # Die 1–5-Skala ist nur im Gekocht-Dialog.
-    at.button(key="interesse_anna_kartoffelgratin_5").click().run()
-    assert not at.exception
-    assert at.button(key="interesse_anna_kartoffelgratin_5").disabled
-    b = lade_bewertungen(app_db)[0]
-    assert b["person"] == "anna" and b["note"] == 5 and b["gekocht"] is False
-    assert len(b["vorrat"]) == 3
-    assert lade_vorrat(app_db, "anna", Wissensbasis()).iloc[0]["menge"] == 800
-    at.button(key="interesse_anna_kartoffelgratin_1").click().run()
-    assert lade_bewertungen(app_db)[-1]["note"] == 1
+    assert not any("Würdest du das gerne kochen?" in m.value for m in at.markdown)
+    assert not any(b.label in ("👍 Ja", "👎 Nein") for b in at.button)
+    assert at.button(key="gekocht_kartoffelgratin")
+    assert lade_bewertungen(app_db) == []
 
 
 def test_einkauf_uebernehmen_aktualisiert_vorrat_und_menues(app_db):
