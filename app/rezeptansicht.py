@@ -2,7 +2,7 @@
 
 Ablauf: Vorrat laden -> Wissensbasis filtert geeignete Rezepte -> Ranking sortiert
 -> Anzeige mit Begründung -> Bewertung wird mit Vorrat-Snapshot gespeichert (Trainingsdaten).
-Mit "Gekocht" werden die verbrauchten Mengen vom Vorrat abgezogen.
+«Kochen» öffnet Zutaten und Zubereitung. Erst beim Abschluss werden Verbrauch und Bewertung gespeichert.
 """
 from html import escape
 
@@ -29,19 +29,116 @@ def zutaten_text(rezept):
     return ", ".join(teile)
 
 
-@st.dialog("Kochen abschliessen", width="large")
-def gekocht_dialog(kandidat, vorrat):
+def _kochkey(kandidat):
+    return f"kochablauf_{st.session_state.person}_{kandidat['rezept']['id']}"
+
+
+def zubereitungsschritte(rezept):
+    """Importierte Listen und einfache Texte unterstützen, leere Einträge auslassen."""
+    schritte = rezept.get('zubereitung') or []
+    if isinstance(schritte, str):
+        schritte = schritte.splitlines()
+    return [s.strip() for s in schritte if isinstance(s, str) and s.strip()]
+
+
+def _kochphase(flowkey, phase, schritt=0):
+    st.session_state[flowkey].update(phase=phase, schritt=schritt)
+
+
+def _merke_kochwert(flowkey, widgetkey):
+    # Separate Entwurfswerte überleben das Entfernen von Widgets beim Zurückgehen.
+    st.session_state[flowkey]['werte'][widgetkey] = st.session_state[widgetkey]
+
+
+@st.dialog('Dein Kochmodus', width='large')
+def kochen_dialog(kandidat, vorrat):
+    """Zutaten → je ein Zubereitungsschritt → Verbrauch und Bewertung.
+
+    Die ersten beiden Phasen sind reine Vorschau. Keine Datenbankverbindung
+    bleibt während der Zubereitung offen. Abbrechen schreibt nichts.
+    """
+    rezept = kandidat['rezept']
+    flowkey = _kochkey(kandidat)
+    if flowkey not in st.session_state:
+        st.session_state[flowkey] = {'phase': 'zutaten', 'schritt': 0, 'werte': {}}
+    zustand = st.session_state[flowkey]
+    phase = zustand['phase']
+    st.subheader(rezept['titel'])
+    st.caption(f"{rezept['portionen']} Portionen · {rezept['kochzeit_min']} Minuten")
+    phasen = [('zutaten', '1 Zutaten'), ('zubereitung', '2 Kochen'), ('abschluss', '3 Bewerten')]
+    st.html('<div class="kochphasen">' + ''.join(
+        f'<span class="{"aktiv" if name == phase else ""}">{label}</span>'
+        for name, label in phasen) + '</div>')
+    wb = ressourcen.wissensbasis()
+    if 'grundstock' in kandidat:
+        wb = wb.mit_grundstock(kandidat['grundstock'])
+    if phase == 'zutaten':
+        st.write('Lege dir diese Zutaten bereit.')
+        for z in rezept['zutaten']:
+            menge = f"{z['menge']:g} {z['einheit']} " if z['menge'] is not None else ''
+            zusatz = ' · optional' if not z['pflicht'] else ''
+            if wb.ist_grundstock(z['zutat']):
+                zusatz += ' · Grundstock'
+            st.write(f"{menge}{wb.namen[z['zutat']]}{zusatz}")
+        if kandidat['fehlend_optional']:
+            st.caption('Optional nicht vorhanden: ' + ', '.join(kandidat['fehlend_optional']))
+        for begruendung in kandidat['begruendungen']:
+            if 'statt' in begruendung:
+                st.info(begruendung)
+        plan = verbrauchsplan(rezept, vorrat, wb)
+        for artikel in vorrat:
+            bedarf = plan.get(artikel['id'])
+            if bedarf is not None and artikel.get('menge') is not None and bedarf > artikel['menge']:
+                st.warning(f"{wb.namen.get(artikel['zutat'], artikel['zutat'])}: "
+                           f"benötigt {bedarf:g} {artikel['einheit']}, erfasst {artikel['menge']:g}. "
+                           'Prüfe die verfügbare Menge vor dem Kochen.')
+        if any(a.get('tage') is not None and a['tage'] < 0 for a in kandidat['verwendet']):
+            st.warning('Mindestens eine verwendete Zutat hat ihr eingetragenes Ablaufdatum überschritten. '
+                       'Prüfe sie vor dem Verwenden; ein Vorschlag bestätigt keine Geniessbarkeit.')
+        st.button('Mit dem Kochen beginnen', type='primary', on_click=_kochphase,
+                  args=(flowkey, 'zubereitung'))
+    elif phase == 'zubereitung':
+        schritte = zubereitungsschritte(rezept)
+        if schritte:
+            index = min(zustand['schritt'], len(schritte) - 1)
+            st.caption(f'Schritt {index + 1} von {len(schritte)}')
+            st.progress((index + 1) / len(schritte))
+            st.html(f'<div class="kochschritt">{escape(schritte[index])}</div>')
+            with st.expander('Zutaten nachsehen'):
+                st.write(zutaten_text(rezept))
+            if index > 0:
+                st.button('Zurück', on_click=_kochphase, args=(flowkey, 'zubereitung', index - 1))
+            else:
+                st.button('Zur Zutatenliste', on_click=_kochphase, args=(flowkey, 'zutaten'))
+            if index < len(schritte) - 1:
+                st.button('Nächster Schritt', type='primary', on_click=_kochphase,
+                          args=(flowkey, 'zubereitung', index + 1))
+            else:
+                st.button('Fertig gekocht', type='primary', on_click=_kochphase,
+                          args=(flowkey, 'abschluss'))
+        else:
+            st.info('Für dieses Gericht ist noch keine Zubereitungsanleitung hinterlegt. '
+                    'Du kannst die Zutatenliste nutzen und nach dem Kochen deinen Verbrauch speichern.')
+            st.button('Zur Zutatenliste', on_click=_kochphase, args=(flowkey, 'zutaten'))
+            st.button('Fertig gekocht', type='primary', on_click=_kochphase, args=(flowkey, 'abschluss'))
+    else:
+        schritte = zubereitungsschritte(rezept)
+        st.button('Zur Zubereitung', on_click=_kochphase,
+                  args=(flowkey, 'zubereitung', max(0, len(schritte) - 1)))
+        _zeige_abschluss(kandidat, vorrat, flowkey)
+
+
+def _zeige_abschluss(kandidat, vorrat, flowkey):
     """Verbrauch prüfen, Bewertung speichern und Restmengen behalten."""
     wb = ressourcen.wissensbasis()
     if "grundstock" in kandidat:
         wb = wb.mit_grundstock(kandidat["grundstock"])
     person = st.session_state.person
     rezept = kandidat["rezept"]
-    st.markdown(f"**{rezept['titel']}**")
-    st.caption(f"Für {rezept['portionen']} Portionen · {rezept['kochzeit_min']} Minuten")
     with st.expander("Rezeptmengen ansehen"):
         st.write(zutaten_text(rezept))
-    st.subheader("1. Verbrauch prüfen")
+    st.subheader("Verbrauch prüfen")
+    entwurf = st.session_state[flowkey]["werte"]
 
     verbrauch = {}
     plan = verbrauchsplan(rezept, vorrat, wb)
@@ -63,7 +160,8 @@ def gekocht_dialog(kandidat, vorrat):
                                "unterschiedliche Einheiten oder Ersatzprodukt).")
                 verwendet = st.number_input(
                     f"{name}: verwendet ({einheit})", min_value=0.0,
-                    value=float(vorschlag) if vorschlag is not None else None, key=key,
+                    value=entwurf.get(key, float(vorschlag) if vorschlag is not None else None), key=key,
+                    on_change=_merke_kochwert, args=(flowkey, key),
                 )
                 verwendet = verwendet or 0.0
                 if verwendet > menge:
@@ -76,21 +174,27 @@ def gekocht_dialog(kandidat, vorrat):
                 verbrauch[artikel["id"]] = verwendet
             else:
                 st.number_input(f"{name}: verwendet ({einheit})", min_value=0.0,
-                                value=float(vorschlag) if vorschlag is not None else None, key=key)
+                                value=entwurf.get(key, float(vorschlag) if vorschlag is not None else None), key=key,
+                                on_change=_merke_kochwert, args=(flowkey, key))
                 st.caption(f"{name}: Vorratsmenge unbekannt; auch die Restmenge bleibt unbekannt. "
                            "Für einen berechneten Restbestand zuerst die Menge unter «Vorrat» erfassen.")
-                if st.checkbox(f"{name} vollständig aufgebraucht", value=False, key=key + "_aufgebraucht"):
+                if st.checkbox(f"{name} vollständig aufgebraucht",
+                               value=entwurf.get(key + "_aufgebraucht", False), key=key + "_aufgebraucht",
+                               on_change=_merke_kochwert, args=(flowkey, key + "_aufgebraucht")):
                     verbrauch[artikel["id"]] = None
     else:
         st.write("Das Rezept braucht nur Zutaten aus dem Grundstock.")
 
     st.caption("Bei Ersatzprodukten ist die Rezeptmenge ein Vorschlag; prüfe den tatsächlichen Verbrauch.")
-    st.subheader("2. Wie hat es geschmeckt?")
+    st.subheader("Wie hat es geschmeckt?")
     st.caption("Bewerte das Gericht nach dem Kochen. Deine Rückmeldung wird mit dem Verbrauch gespeichert.")
-    sterne = st.feedback("stars", key=f"sterne_{person}_{rezept['id']}")
+    sternkey = f"sterne_{person}_{rezept['id']}"
+    if sternkey not in st.session_state and sternkey in entwurf:
+        st.session_state[sternkey] = entwurf[sternkey]
+    sterne = st.feedback('stars', key=sternkey, on_change=_merke_kochwert, args=(flowkey, sternkey))
     if sterne is not None:
         st.caption(f"{sterne + 1} von 5 Sternen")
-    if st.button("Speichern", type="primary", disabled=sterne is None or fehlmenge):
+    if st.button("Bewertung & Verbrauch speichern", type="primary", disabled=sterne is None or fehlmenge):
         try:
             # Der Dialog kann länger offen sein als die Turso-Verbindung gültig ist.
             with ressourcen.datenbank() as conn:
@@ -107,7 +211,8 @@ def gekocht_dialog(kandidat, vorrat):
         if gerettete:
             gerettet = ", ".join(wb.namen[z] for z in dict.fromkeys(gerettete))
             meldung = f"Gerettet: {gerettet}! " + meldung
-        st.session_state.meldung = meldung  # wird nach dem Neuladen oben angezeigt
+        st.session_state.meldung = meldung
+        st.session_state.pop(flowkey, None)
         st.rerun()
 
 
@@ -147,12 +252,13 @@ def zeige_rezept(kandidat, vorrat, nummer=None):
             else:
                 st.caption('Eine Schritt-für-Schritt-Zubereitung ist für dieses Gericht noch nicht hinterlegt.')
             st.caption('Zutaten sind vorhanden oder ersetzbar. Die benötigten Mengen prüfst du vor dem Speichern.')
-        if st.button('Gekocht', icon=':material/check:', key=f"gekocht_{rezept['id']}",
+        if st.button('Kochen', icon=':material/skillet:', key=f"gekocht_{rezept['id']}",
                      use_container_width=True):
             for key in list(st.session_state):
                 if key.startswith(f"verbrauch_{rezept['id']}_") or key == f"sterne_{person}_{rezept['id']}":
                     del st.session_state[key]
-            gekocht_dialog(kandidat, vorrat)
+            st.session_state[_kochkey(kandidat)] = {'phase': 'zutaten', 'schritt': 0, 'werte': {}}
+            kochen_dialog(kandidat, vorrat)
 
 
 def zeige_vorschlaege(vorrat_df, kompakt=False):

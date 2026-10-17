@@ -9,8 +9,15 @@ h3 { font-size: 1.25rem !important; }
 p { line-height: 1.6; }
 .augenbraue { text-transform: uppercase; letter-spacing: .15em; font-size: .73rem; font-weight: 700; color: #56715f; margin: .3rem 0 .15rem; }
 .markenleiste { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding-bottom:1.2rem; margin-bottom:.5rem; border-bottom:1px solid var(--linie); }
-.wortmarke { font-size:1.75rem; font-weight:750; letter-spacing:-.06em; }
-.wortmarke span { color:#b16b43; }
+.wortmarke { display:flex; align-items:center; gap:.65rem; font-size:1.5rem; font-weight:650; letter-spacing:-.045em; white-space:nowrap; }
+.marken-ai { color:#617858; font-weight:500; letter-spacing:-.025em; }
+.markenzeichen { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:12px; background:#e5ecdc; }
+.markenzeichen > span { display:block; position:relative; width:20px; height:12px; background:#416648; border-radius:2px 14px 2px 14px; transform:rotate(-35deg); }
+.markenzeichen > span::after { content:''; position:absolute; width:18px; height:1px; background:#e5ecdc; top:7px; left:-2px; transform:rotate(-12deg); }
+.kochphasen { display:flex; gap:.5rem; flex-wrap:wrap; margin:.7rem 0 1.1rem; }
+.kochphasen span { padding:.35rem .65rem; border-radius:20px; background:#edf0e9; color:#60705e; font-size:.8rem; }
+.kochphasen .aktiv { background:#285847; color:#fff; }
+.kochschritt { background:#eef3e7; border-radius:16px; padding:1.3rem; margin:.75rem 0 1.1rem; font-size:1.15rem; line-height:1.65; }
 .st-key-navigation { padding:0 0 1rem; margin-bottom:.5rem; border-bottom:1px solid var(--linie); }
 .st-key-navigation [data-testid="stPageLink"] a { min-height:44px; padding:.6rem .8rem; border-radius:10px; }
 .st-key-navigation [data-testid="stPageLink"] a:hover { background:#eaf0e1; }

@@ -46,7 +46,7 @@ def test_gleicher_artikel_fuer_mehrere_rezeptzutaten():
 
 
 @pytest.mark.parametrize("sterne", range(5), ids=["1_Stern", "2_Sterne", "3_Sterne", "4_Sterne", "5_Sterne"])
-def test_gekocht_dialog_speichert_teilverbrauch(tmp_path, monkeypatch, sterne):
+def test_kochmodus_speichert_teilverbrauch(tmp_path, monkeypatch, sterne):
     from streamlit.testing.v1 import AppTest
     from app import ressourcen
     from app.datenbank import fuege_hinzu, lade_bewertungen, lade_vorrat, verbinde
@@ -67,24 +67,28 @@ def test_gekocht_dialog_speichert_teilverbrauch(tmp_path, monkeypatch, sterne):
     # AppTest führt bei Änderungen einen ganzen Seitenlauf aus und unterstützt
     # Dialog-Fragmente noch nicht vollständig. Im Test den Dialog pro Lauf öffnen.
     at = AppTest.from_string("""
-from app.rezeptansicht import gekocht_dialog
+from app.rezeptansicht import kochen_dialog
 from app.datenbank import lade_vorrat, vorrat_als_liste
 from app.ressourcen import verbindung, wissensbasis
 from wissensbasis.eignung import finde_kandidaten, lade_rezepte
 vorrat = vorrat_als_liste(lade_vorrat(verbindung(), 'anna', wissensbasis()))
 kandidat = next(k for k in finde_kandidaten(lade_rezepte(), vorrat, wissensbasis())
                 if k['rezept']['id'] == 'kartoffelgratin')
-gekocht_dialog(kandidat, vorrat)
+kochen_dialog(kandidat, vorrat)
 """)
     at.session_state.person = "anna"
     at.run()
-    assert next(b for b in at.button if b.label == "Speichern").disabled
+    next(b for b in at.button if b.label == 'Mit dem Kochen beginnen').click().run()
+    while any(b.label == 'Nächster Schritt' for b in at.button):
+        next(b for b in at.button if b.label == 'Nächster Schritt').click().run()
+    next(b for b in at.button if b.label == 'Fertig gekocht').click().run()
+    assert next(b for b in at.button if b.label == "Bewertung & Verbrauch speichern").disabled
     at.feedback(key="sterne_anna_kartoffelgratin").set_value(sterne).run()
     kartoffel_id = int(lade_vorrat(conn, "anna", Wissensbasis()).index[0])
     feld = at.number_input(key=f"verbrauch_kartoffelgratin_{kartoffel_id}")
     assert feld.value == 600
     feld.set_value(550).run()
-    next(b for b in at.button if b.label == "Speichern").click().run()
+    next(b for b in at.button if b.label == "Bewertung & Verbrauch speichern").click().run()
     assert not at.exception
     assert lade_vorrat(conn, "anna", Wissensbasis()).loc[kartoffel_id, "menge"] == 250
     assert lade_bewertungen(conn)[0]["gekocht"] is True
