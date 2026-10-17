@@ -7,6 +7,12 @@
       {"zutat": "Speck", "menge": 100, "einheit": "g", "pflicht": true},
       {"zutat": "Parmesan", "menge": 40, "einheit": "g", "pflicht": true},
       {"zutat": "Pfeffer", "menge": null, "einheit": null, "pflicht": true}
+    ],
+    "zubereitung": [
+      "Spaghetti nach Packungsangabe in Wasser kochen. Vor dem Abgiessen eine Tasse Kochwasser aufheben.",
+      "Speck in einer grossen Pfanne anbraten. Parmesan fein reiben und mit den Eiern und etwas Pfeffer in einer Schüssel verrühren.",
+      "Spaghetti zum Speck geben. Die Pfanne vom Herd nehmen und die Eier-Käse-Mischung unter ständigem Rühren dazugeben. Mit wenig heissem Kochwasser cremig rühren. Nicht aufkochen, damit das Ei nicht stockt.",
+      "Die cremigen Spaghetti direkt auf Teller verteilen und servieren."
     ]
   },
   {
@@ -19,6 +25,12 @@
       {"zutat": "Knoblauch", "menge": 5, "einheit": "g", "pflicht": false},
       {"zutat": "Parmesan", "menge": 30, "einheit": "g", "pflicht": false},
       {"zutat": "Olivenoel", "menge": null, "einheit": null, "pflicht": true}
+    ],
+    "zubereitung": [
+      "Zwiebel fein schneiden. Falls vorhanden, Knoblauch fein hacken. Teigwaren nach Packungsangabe kochen.",
+      "Olivenöl in einer Pfanne erwärmen. Zwiebel und optional Knoblauch darin glasig dünsten.",
+      "Pelati dazugeben, zerkleinern und etwa 10 Minuten leicht köcheln lassen. Rahm einrühren und kurz erwärmen.",
+      "Teigwaren abgiessen und mit der Sauce mischen. Falls vorhanden, mit geriebenem Parmesan servieren."
     ]
   },
   {
@@ -31,6 +43,12 @@
       {"zutat": "Karotte", "menge": 100, "einheit": "g", "pflicht": false},
       {"zutat": "Zucchetti", "menge": 150, "einheit": "g", "pflicht": false},
       {"zutat": "Bouillon", "menge": null, "einheit": null, "pflicht": true}
+    ],
+    "zubereitung": [
+      "Zwiebel fein schneiden. Optional Karotte und Zucchetti klein würfeln. Bouillon mit Wasser zubereiten und warm halten.",
+      "Die Hälfte der Butter in einem Topf erwärmen. Zwiebel und vorhandenes Gemüse darin andünsten. Reis dazugeben und kurz mitdünsten.",
+      "Heisse Bouillon nach und nach zum Reis geben. Unter regelmässigem Rühren leicht köcheln lassen, bis der Reis gar ist. Die Garzeit richtet sich nach der verwendeten Reissorte.",
+      "Hartkäse reiben. Topf vom Herd nehmen, Käse und restliche Butter einrühren. Bei Bedarf mit etwas Bouillon cremig rühren und servieren."
     ]
   },
   {
@@ -40,6 +58,12 @@
       {"zutat": "Tomate", "menge": 150, "einheit": "g", "pflicht": true},
       {"zutat": "Butter", "menge": 10, "einheit": "g", "pflicht": false},
       {"zutat": "Brot", "menge": 100, "einheit": "g", "pflicht": false}
+    ],
+    "zubereitung": [
+      "Tomaten waschen und in kleine Stücke schneiden. Eier in einer Schüssel verquirlen.",
+      "Eine beschichtete Pfanne bei mittlerer Hitze erwärmen. Falls vorhanden, etwas Butter darin schmelzen. Tomaten kurz darin erwärmen.",
+      "Eier dazugeben und bei niedriger bis mittlerer Hitze mit einem Pfannenwender langsam zusammenschieben, bis sie gestockt sind.",
+      "Rührei sofort servieren. Falls vorhanden, Brot dazu reichen."
     ]
   },
   {
@@ -49,6 +73,12 @@
       {"zutat": "Spinat", "menge": 100, "einheit": "g", "pflicht": true},
       {"zutat": "Feta", "menge": 50, "einheit": "g", "pflicht": false},
       {"zutat": "Milch", "menge": 30, "einheit": "ml", "pflicht": false}
+    ],
+    "zubereitung": [
+      "Spinat waschen und gut abtropfen lassen. Eier verquirlen; falls vorhanden, die optionale Milch unterrühren. Optional Feta zerbröseln.",
+      "Spinat in einer beschichteten Pfanne mit einem kleinen Schluck Wasser zusammenfallen lassen. Überschüssiges Wasser verdampfen lassen.",
+      "Eier über den Spinat giessen. Optional Feta darauf verteilen. Bei niedriger Hitze mit Deckel stocken lassen, bis die Eier durchgegart sind.",
+      "Omelette vorsichtig zusammenklappen, auf einen Teller gleiten lassen und servieren."
     ]
   },
   {
@@ -59,6 +89,12 @@
       {"zutat": "Kartoffel", "menge": 150, "einheit": "g", "pflicht": false},
       {"zutat": "Rahm", "menge": 50, "einheit": "ml", "pflicht": false},
       {"zutat": "Bouillon", "menge": null, "einheit": null, "pflicht": true}
+    ],
+    "zubereitung": [
+      "Karotten und Zwiebel schälen und klein schneiden. Falls vorhanden, die optionale Kartoffel ebenfalls würfeln.",
+      "Gemüse in einen Topf geben und mit zubereiteter Bouillon knapp bedecken. Aufkochen und etwa 20 Minuten köcheln lassen, bis alles weich ist.",
+      "Suppe vorsichtig pürieren. Mit Wasser oder Bouillon auf die gewünschte Konsistenz verdünnen.",
+      "Falls vorhanden, Rahm einrühren. Nochmals erwärmen und mit vorhandenen Gewürzen abschmecken."
     ]
   },
   {
@@ -69,6 +105,12 @@
       {"zutat": "Milch", "menge": 150, "einheit": "ml", "pflicht": true},
       {"zutat": "Hartkaese", "menge": 60, "einheit": "g", "pflicht": false},
       {"zutat": "Knoblauch", "menge": 5, "einheit": "g", "pflicht": false}
+    ],
+    "zubereitung": [
+      "Backofen auf 200 °C Ober-/Unterhitze vorheizen. Kartoffeln schälen und in sehr dünne, gleichmässige Scheiben schneiden.",
+      "Rahm und Milch mischen. Falls vorhanden, Knoblauch fein hacken und dazugeben. Mit vorhandenen Gewürzen abschmecken.",
+      "Kartoffelscheiben in eine Auflaufform schichten und mit der Rahm-Milch-Mischung übergiessen. Optional geriebenen Hartkäse darüberstreuen.",
+      "Etwa 40–50 Minuten backen, bis die Kartoffeln weich sind. Wird die Oberfläche zu dunkel, die Form abdecken. Vor dem Servieren kurz stehen lassen."
     ]
   },
   {
@@ -80,6 +122,12 @@
       {"zutat": "Hartkaese", "menge": 80, "einheit": "g", "pflicht": true},
       {"zutat": "Zwiebel", "menge": 100, "einheit": "g", "pflicht": true},
       {"zutat": "Apfel", "menge": 2, "einheit": "Stück", "pflicht": false}
+    ],
+    "zubereitung": [
+      "Kartoffeln schälen und klein würfeln. Zwiebel in dünne Streifen schneiden und Hartkäse reiben.",
+      "Kartoffeln in Wasser vorkochen. Hörnli so dazugeben, dass beide gemäss ihrer Garzeit gleichzeitig weich werden. Zusammen abgiessen und etwas Kochwasser aufheben.",
+      "Zwiebel in einer beschichteten Pfanne bei mittlerer Hitze goldbraun garen. Nach Bedarf etwas Wasser oder vorhandenes Öl zugeben.",
+      "Rahm im Topf erwärmen. Kartoffeln, Hörnli und Käse einrühren. Bei Bedarf mit wenig Kochwasser lockern. Mit den Zwiebeln und optional Apfelschnitzen servieren."
     ]
   },
   {
@@ -91,6 +139,12 @@
       {"zutat": "Zwiebel", "menge": 80, "einheit": "g", "pflicht": true},
       {"zutat": "Peperoni", "menge": 150, "einheit": "g", "pflicht": false},
       {"zutat": "Currypulver", "menge": null, "einheit": null, "pflicht": true}
+    ],
+    "zubereitung": [
+      "Reis nach Packungsangabe kochen. Zwiebel fein schneiden. Optional Peperoni waschen und würfeln. Poulet auf einem separaten Brett in mundgerechte Stücke schneiden.",
+      "Poulet in einer beschichteten Pfanne anbraten, bei Bedarf mit etwas vorhandenem Öl. Zwiebel und optionale Peperoni dazugeben und kurz mitgaren.",
+      "Currypulver einrühren, dann Rahm dazugeben. Sanft köcheln lassen, bis das Poulet vollständig durchgegart und das Gemüse weich ist. Falls nötig, etwas Wasser ergänzen.",
+      "Curry mit vorhandenen Gewürzen abschmecken und mit dem Reis servieren."
     ]
   },
   {
@@ -101,6 +155,12 @@
       {"zutat": "Zwiebel", "menge": 80, "einheit": "g", "pflicht": true},
       {"zutat": "Peperoni", "menge": 150, "einheit": "g", "pflicht": false},
       {"zutat": "Reis", "menge": 160, "einheit": "g", "pflicht": false}
+    ],
+    "zubereitung": [
+      "Linsen nach Packungsangabe vorbereiten. Zwiebel fein schneiden. Falls vorhanden, Peperoni würfeln und den optionalen Reis separat kochen.",
+      "Zwiebel und optionale Peperoni in einem Topf mit einem Schluck Wasser oder etwas vorhandenem Öl andünsten.",
+      "Linsen und Pelati dazugeben. Mit Wasser bedecken und nach Packungsangabe köcheln lassen, bis die Linsen weich sind. Bei Bedarf Wasser nachgiessen.",
+      "Mit vorhandenen Gewürzen abschmecken. So lange offen köcheln lassen, bis die gewünschte Konsistenz erreicht ist. Optional mit Reis servieren."
     ]
   },
   {
@@ -109,6 +169,11 @@
       {"zutat": "Tomate", "menge": 300, "einheit": "g", "pflicht": true},
       {"zutat": "Mozzarella", "menge": 150, "einheit": "g", "pflicht": true},
       {"zutat": "Olivenoel", "menge": null, "einheit": null, "pflicht": true}
+    ],
+    "zubereitung": [
+      "Tomaten waschen und in Scheiben oder mundgerechte Stücke schneiden.",
+      "Mozzarella abtropfen lassen und in Scheiben schneiden oder mit den Händen zupfen.",
+      "Tomaten und Mozzarella auf Tellern verteilen. Mit Olivenöl beträufeln und nach Geschmack mit vorhandenen Gewürzen würzen."
     ]
   },
   {
@@ -118,6 +183,12 @@
       {"zutat": "Kartoffel", "menge": 400, "einheit": "g", "pflicht": true},
       {"zutat": "Zucchetti", "menge": 200, "einheit": "g", "pflicht": false},
       {"zutat": "Zitrone", "menge": 1, "einheit": "Stück", "pflicht": false}
+    ],
+    "zubereitung": [
+      "Backofen auf 200 °C Ober-/Unterhitze vorheizen. Kartoffeln waschen und in kleine, dünne Spalten schneiden. Optional Zucchetti in Stücke schneiden.",
+      "Kartoffeln auf einem mit Backpapier belegten Blech verteilen. Bei Bedarf mit etwas vorhandenem Öl und Gewürzen mischen. Etwa 15 Minuten vorbacken.",
+      "Lachs und optionale Zucchetti zum Blech geben. Weitere etwa 15–20 Minuten backen, bis Kartoffeln und Lachs durchgegart sind. Die Garzeit hängt von der Dicke des Fisches ab.",
+      "Alles auf Teller verteilen. Falls vorhanden, mit Zitronenspalten servieren."
     ]
   },
   {
@@ -127,6 +198,12 @@
       {"zutat": "Brokkoli", "menge": 300, "einheit": "g", "pflicht": true},
       {"zutat": "Rahm", "menge": 100, "einheit": "ml", "pflicht": true},
       {"zutat": "Hartkaese", "menge": 50, "einheit": "g", "pflicht": false}
+    ],
+    "zubereitung": [
+      "Brokkoli waschen und in kleine Röschen teilen. Den geschälten Strunk klein schneiden.",
+      "Teigwaren nach Packungsangabe kochen. Brokkoli in den letzten 5–7 Minuten mitkochen, bis er weich genug ist. Etwas Kochwasser aufheben und alles abgiessen.",
+      "Rahm im Topf erwärmen. Falls vorhanden, geriebenen Hartkäse darin schmelzen lassen.",
+      "Teigwaren und Brokkoli mit der Sauce mischen. Bei Bedarf mit Kochwasser lockern und mit vorhandenen Gewürzen abschmecken."
     ]
   },
   {
@@ -138,6 +215,12 @@
       {"zutat": "Ei", "menge": 1, "einheit": "Stück", "pflicht": false},
       {"zutat": "Brot", "menge": 50, "einheit": "g", "pflicht": false},
       {"zutat": "Teigwaren", "menge": 200, "einheit": "g", "pflicht": false}
+    ],
+    "zubereitung": [
+      "Zwiebel fein schneiden. Hackfleisch mit der Hälfte der Zwiebel und vorhandenen Gewürzen mischen. Falls vorhanden, etwas fein zerkrümeltes Brot und verquirltes Ei nach Bedarf einarbeiten. Kleine Bällchen formen.",
+      "Hackbällchen in einer beschichteten Pfanne rundherum anbraten. Bei Bedarf etwas vorhandenes Öl verwenden.",
+      "Restliche Zwiebel und Pelati dazugeben. Zugedeckt sanft köcheln lassen, bis die Hackbällchen vollständig durchgegart sind.",
+      "Falls vorhanden, die optionalen Teigwaren nach Packungsangabe kochen. Sauce abschmecken und die Hackbällchen damit servieren."
     ]
   },
   {
@@ -147,6 +230,12 @@
       {"zutat": "Ei", "menge": 2, "einheit": "Stück", "pflicht": true},
       {"zutat": "Milch", "menge": 100, "einheit": "ml", "pflicht": true},
       {"zutat": "Mehl", "menge": null, "einheit": null, "pflicht": true}
+    ],
+    "zubereitung": [
+      "Bananen schälen und mit einer Gabel zerdrücken. Eier und Milch unterrühren.",
+      "Mehl nach und nach einrühren, bis ein dickflüssiger, mit dem Löffel portionierbarer Teig entsteht. Die Rezeptliste gibt dafür keine feste Menge vor.",
+      "Eine beschichtete Pfanne bei mittlerer Hitze erwärmen. Kleine Teigportionen hineingeben; bei Bedarf wenig vorhandenes Öl verwenden.",
+      "Pancakes auf beiden Seiten goldbraun backen und vollständig durchgaren. Bei zu schneller Bräunung die Hitze reduzieren. Warm servieren."
     ]
   },
   {
@@ -157,6 +246,11 @@
       {"zutat": "Peperoni", "menge": 100, "einheit": "g", "pflicht": false},
       {"zutat": "Tomate", "menge": 150, "einheit": "g", "pflicht": false},
       {"zutat": "Zitrone", "menge": 1, "einheit": "Stück", "pflicht": false}
+    ],
+    "zubereitung": [
+      "Couscous nach Packungsangabe mit heissem Wasser übergiessen und zugedeckt quellen lassen. Anschliessend mit einer Gabel auflockern und etwas abkühlen lassen.",
+      "Feta zerbröseln. Falls vorhanden, Peperoni und Tomate waschen und klein würfeln.",
+      "Couscous, Feta und vorhandenes Gemüse mischen. Optional Zitronensaft dazugeben und mit vorhandenen Gewürzen abschmecken."
     ]
   },
   {
@@ -167,6 +261,12 @@
       {"zutat": "Zwiebel", "menge": 50, "einheit": "g", "pflicht": false},
       {"zutat": "Mozzarella", "menge": 125, "einheit": "g", "pflicht": false},
       {"zutat": "Olivenoel", "menge": null, "einheit": null, "pflicht": true}
+    ],
+    "zubereitung": [
+      "Brot in mundgerechte Würfel schneiden. In einer beschichteten Pfanne mit etwas vom Olivenöl knusprig rösten.",
+      "Tomaten waschen und klein schneiden. Optional Zwiebel fein schneiden und Mozzarella zupfen.",
+      "Tomaten und optionale Zutaten mit dem restlichen Olivenöl mischen. Mit vorhandenen Gewürzen abschmecken.",
+      "Brot erst kurz vor dem Servieren unterheben, damit es noch etwas knusprig bleibt."
     ]
   },
   {
@@ -176,6 +276,12 @@
       {"zutat": "Kartoffel", "menge": 400, "einheit": "g", "pflicht": true},
       {"zutat": "Schinken", "menge": 100, "einheit": "g", "pflicht": false},
       {"zutat": "Rahm", "menge": 100, "einheit": "ml", "pflicht": false}
+    ],
+    "zubereitung": [
+      "Kartoffeln schälen und klein würfeln. Lauch längs aufschneiden, gründlich waschen und in Ringe schneiden. Optional Schinken würfeln.",
+      "Kartoffeln in einem Topf mit etwas Wasser zugedeckt garen. Nach etwa 10 Minuten Lauch dazugeben und weitergaren, bis die Kartoffeln weich sind.",
+      "Überschüssiges Wasser abgiessen. Optional Schinken und Rahm dazugeben und alles nochmals gut erwärmen.",
+      "Mit vorhandenen Gewürzen abschmecken. Ohne Rahm mit einem Schluck Kochwasser locker halten und servieren."
     ]
   }
 ]

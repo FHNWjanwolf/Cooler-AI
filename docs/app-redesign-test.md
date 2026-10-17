@@ -1,9 +1,9 @@
 # App-Überarbeitung für TEST
 
-Stand: 17. Oktober 2026. Aufgabenbranch `feature/app-redesign-test`, Ziel `test`.
+Stand: 17. Oktober 2026. Aufgabenbranches `feature/app-redesign-test` und `feature/kochmodus-logo`, Ziel `test`.
 Dieser Versuch wird ausdrücklich zuerst auf TEST veröffentlicht. `dev` und `main`
-werden nicht verändert. Die fachlichen Regeln, das ML und die Rezeptdaten bleiben
-auf ihrem bisherigen Stand.
+werden nicht verändert. Fachliche Regeln, ML sowie Rezept-IDs, Zutaten und
+Mengen bleiben erhalten. Die Weiterentwicklung ergänzt eigene Zubereitungsschritte.
 
 ## Bedienung und Gestaltung
 
@@ -15,8 +15,8 @@ auf ihrem bisherigen Stand.
 - **Rezepte:** kompakte Karten, Details zum Aufklappen, Suche, vegetarischer
   Filter und maximale Kochzeit. Bei mehr als neun Treffern werden zunächst neun
   angezeigt. Vorhandene Zubereitungsschritte können angezeigt werden; fehlende
-  Anleitungen werden nicht erfunden. Die bisherigen 18 Rezepte haben noch keine
-  Schritt-für-Schritt-Zubereitung.
+  Anleitungen werden nicht als importierte Originale ausgegeben. Für die bisherigen
+  18 Gerichte wurden mit Nutzerfreigabe eigene Anleitungen ergänzt (siehe `daten/README.md`).
 - **Einkauf:** persönliche Einkaufsliste. Eine Einkaufsidee verändert keinen
   Vorrat. Erst «Gekauft · in den Vorrat» übernimmt die tatsächlich gekaufte Menge,
   Einheit und das Datum. Wiederholte Klicks addieren keine Mengen. Übernahme und
@@ -65,7 +65,7 @@ Grundstockkontext sowie der Ausschluss von Vorab-Bewertungen bleiben erhalten.
 
 ## Prüfung
 
-- **116 automatische Tests bestanden**, einschliesslich SQLite und lokalem libsql.
+- **120 automatische Tests bestanden**, einschliesslich SQLite und lokalem libsql.
 - Alle drei gespeicherten Vorratsszenarien bestanden.
 - Neue Regressionstests für Einkauf planen/kaufen, doppelte Klicks, fremde
   Profile, Fehler mit Rollback, ungültige Mengen und veraltete Einkaufsdialoge.
@@ -100,7 +100,7 @@ ausdrücklich; ein Profilname in der URL öffnet kein Profil mehr. Vor einem
 öffentlichen Kontobetrieb sind echte Anmeldung und verlässliche Zugriffsrechte
 nötig. Das erfordert die Auswahl und Einrichtung eines Anmeldeverfahrens.
 
-Weitere Arbeit vor einer allgemeinen Veröffentlichung: echte Zubereitungsschritte
+Weitere Arbeit vor einer allgemeinen Veröffentlichung: praktisch geprüfte Zubereitungsschritte
 und gegebenenfalls lizenzierte Rezeptbilder, Prüfung auf realen Mobilgeräten,
 Messung der gehosteten Antwortzeiten sowie ein geklärter Daten- und Betriebsprozess.
 
@@ -109,3 +109,24 @@ Messung der gehosteten Antwortzeiten sowie ein geklärter Daten- und Betriebspro
 ![Heute auf Desktop](bilder/heute-desktop.png)
 
 [Mobile Ansicht](bilder/heute-mobil.png). Die Beispiele enthalten ausschliesslich lokale Testdaten.
+
+## Weiterentwicklung: Wortmarke und Kochmodus
+
+Die Wortmarke zeigt «Cooler AI» mit einem kleinen Blattzeichen, ohne Schrägstrich.
+«Kochen» öffnet einen geführten Dialog: Zutatenübersicht, je ein Zubereitungsschritt
+mit Vor-/Zurücknavigation, danach Verbrauch und Sterne. Vorher wird nichts
+gespeichert. Entwürfe für Mengen und Sterne bleiben beim Zurückgehen erhalten.
+Erst «Bewertung & Verbrauch speichern» schreibt atomar in die Datenbank.
+
+Für alle 18 bestehenden Gerichte sind kurze eigene, KI-unterstützt formulierte
+Anleitungen ergänzt; die praktische Küchenprüfung steht aus. Importierte Rezepte
+ohne Anleitung zeigen ausdrücklich eine Lücke, keine erfundenen Schritte.
+
+Zusätzliche Tests prüfen die Phasen, ausbleibende Vorschau-Schreibzugriffe,
+Entwurfserhalt und den Fallback ohne Anleitung. Im Chromium-Browser wurden
+alle vier Gratin-Schritte, Vor-/Zurücknavigation, Sternefreigabe und Abbrechen
+geprüft.
+
+![Neue Wortmarke](bilder/wortmarke.png)
+
+[Kochschritt auf dem Handy](bilder/kochmodus-mobil.png).

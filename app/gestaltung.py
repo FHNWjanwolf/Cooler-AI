@@ -52,7 +52,9 @@ def leer(titel, text):
 
 
 def markenleiste():
-    st.html('<div class="markenleiste"><div class="wortmarke">cooler<span> / </span></div>'
+    st.html('<div class="markenleiste"><div class="wortmarke">'
+            '<span class="markenzeichen" aria-hidden="true"><span></span></span>'
+            '<span>Cooler <span class="marken-ai">AI</span></span></div>'
             '<span>Gut essen. Weniger verschwenden.</span></div>')
 
 

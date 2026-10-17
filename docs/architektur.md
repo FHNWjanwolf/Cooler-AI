@@ -48,9 +48,17 @@ flowchart TD
 
 **Ranking → App** (`sortiere`): dieselben Dicts, absteigend sortiert, mit zusätzlichem Feld `score`.
 
-## Gekocht
+## Kochen
 
-Der Knopf "Gekocht" öffnet einen Dialog mit vorgeschlagenen, bearbeitbaren Verbrauchsmengen. Gespeichert werden eine Bewertung von 1–5 Sternen mit `gekocht = 1` (Snapshot = Vorrat vor dem Kochen) und der Mengenabzug (`app/datenbank.py: koche`). Restmengen bleiben erhalten. Die Rezeptauswahl prüft weiterhin nur das Vorhandensein der Zutaten.
+Der Knopf «Kochen» öffnet einen geführten Dialog: Zutaten bereitlegen, jeweils
+einen Zubereitungsschritt anzeigen, danach Verbrauch prüfen und bewerten. Schritte
+liegen als optionale Textliste `zubereitung` im Rezept. Für fehlende Anleitungen
+wird die Lücke benannt. Die ersten Phasen schreiben keine Nutzerdaten; beim
+Zurückgehen bleiben eingegebene Mengen und Sterne als Sitzungsentwurf erhalten.
+Erst «Bewertung & Verbrauch speichern» speichert eine Bewertung von 1–5 Sternen
+mit `gekocht = 1` (Snapshot = Vorrat vor dem Kochen) und den Mengenabzug gemeinsam
+(`app/datenbank.py: koche`). Restmengen bleiben erhalten. Die Rezeptauswahl prüft
+weiterhin nur das Vorhandensein der Zutaten.
 
 ## Einkaufsideen
 
@@ -84,9 +92,17 @@ Auch hier gilt: Die Wissensbasis entscheidet, welche Einkäufe in Frage kommen, 
 
 ## Startseite und gemeinsame Ansichten
 
-Nach der Anmeldung öffnet `app/startseite.py` die Übersicht: eigener Vorrat links, Menüvorschläge und Einkaufsideen rechts. «Vorrat anpassen» führt zur bestehenden Vorratsseite. `app/rezeptansicht.py` rendert die Menüs auf Start- und Vorschlagsseite; `app/einkauf.py` zeigt die Einkaufsideen auf Start- und Vorratsseite.
+Nach der Anmeldung öffnet `app/startseite.py` die Heute-Übersicht mit bald
+fälligen Lebensmitteln und drei passenden Gerichten. `app/vorrat.py` bietet die
+vollständige Vorratsliste, Suche und Bearbeitung. `app/rezeptansicht.py` rendert
+gemeinsame Rezeptkarten und den Kochmodus; `app/einkauf.py` zeigt die Einkaufsideen
+auf Heute.
 
-Ein Einkaufsvorschlag enthält die Menge für das bestplatzierte freigeschaltete Rezept, die übliche Einheit und ein Ablaufdatum aus der Wissensbasis. «In den Vorrat übernehmen» fügt diese Werte für die angemeldete Person hinzu und lädt die Übersicht neu. Die übrigen freigeschalteten Rezepte werden als Alternativen angezeigt; ihre Mengen werden nicht summiert.
+Ein Einkaufsvorschlag enthält die Menge für das bestplatzierte freigeschaltete
+Rezept und die übliche Einheit. Er wird zunächst in der persönlichen Einkaufsliste
+vorgemerkt. Erst der bestätigte Kauf auf `app/einkaufsliste.py` übernimmt die
+geprüfte Menge, Einheit und das Ablaufdatum in den Vorrat. Die übrigen
+freigeschalteten Rezepte sind Alternativen; ihre Mengen werden nicht summiert.
 
 ## Haushaltskontext und künstliche Vorräte
 
