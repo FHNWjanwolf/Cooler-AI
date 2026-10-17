@@ -1,99 +1,98 @@
-"""Seite: Vorrat erfassen, bearbeiten und entfernen. Dazu Einkaufsideen."""
+"""Vorrat als mobile Liste mit Suche, Ablauf-Filtern und einzelnen Bearbeitungsformularen."""
 from datetime import date, timedelta
 
 import pandas as pd
 import streamlit as st
 
-from app.datenbank import aktualisiere, fuege_hinzu, lade_vorrat, loesche, vorrat_als_liste
-from app.ressourcen import verbindung, wissensbasis
-from app.einkauf import zeige_einkaufsideen
+from app import ressourcen
+from app.datenbank import aktualisiere, fuege_hinzu, lade_vorrat, loesche
+from app.gestaltung import EINHEITEN, ablauf_status, kopf, leer, menge_text
 from app.rezeptansicht import zeige_meldung
 
-
-def status(tage):
-    if pd.isna(tage):
-        return "⚪ ohne Datum"
-    if tage < 0:
-        return "⚫ abgelaufen"
-    if tage <= 1:
-        return "🔴 heute verbrauchen"
-    if tage <= 3:
-        return "🟠 bald"
-    return "🟢 ok"
-
-
-st.title("Vorrat")
+kopf('Alles im Blick', 'Dein Vorrat', 'Was da ist, was bald fällig ist und was du daraus machen kannst.')
 zeige_meldung()
-conn = verbindung()
-wb = wissensbasis()
-person = st.session_state.person  # gesetzt in cooler_ai.py
+wb = ressourcen.wissensbasis()
+person = st.session_state.person
 
-EINHEITEN = ["g", "kg", "ml", "l", "Stück", "Stk"]
+with ressourcen.datenbank() as conn:
+    vorrat = lade_vorrat(conn, person, wb)
 
-
-# Die Zutat steht ausserhalb des Formulars, damit ihre Auswahl die Einheit
-# bereits vor dem Speichern aktualisiert (Formulare sammeln Änderungen erst beim Submit).
-zutat = st.selectbox("Zutat", wb.zutaten_zur_auswahl(), format_func=wb.namen.get,
-                     index=None, placeholder="Tippen zum Suchen", key="erfassen_zutat")
-standard = wb.eigenschaft(zutat, "einheit") if zutat else "g"
-with st.form("erfassen", clear_on_submit=True):
-    c1, c2, c3 = st.columns([1.5, 1.5, 2])
-    menge = c1.number_input("Menge", min_value=0.0, step=1.0, value=None,
-                            help="Die Menge gilt in der rechts ausgewählten Einheit; auch Dezimalzahlen sind möglich.")
-    einheit = c2.selectbox("Einheit", EINHEITEN, index=EINHEITEN.index(standard),
-                          key=f"erfassen_einheit_{zutat}",
-                          help="Übliche Einheit der Zutat, bei Bedarf anpassen.")
-    ablauf = c3.date_input("Ablaufdatum", value=None, format="DD.MM.YYYY",
-                           help="Leer lassen, um die übliche Haltbarkeit zu übernehmen.")
-    if st.form_submit_button("Hinzufügen", type="primary"):
-        if zutat is None:
-            st.warning("Wähle zuerst eine Zutat aus.")
-        else:
-            haltbar = wb.eigenschaft(zutat, "haltbarTage")
-            if ablauf is None and haltbar is not None:
-                ablauf = date.today() + timedelta(days=haltbar)
-            fuege_hinzu(verbindung(), person, zutat, menge, einheit, ablauf)
-            menge_text = f"{menge:g} {einheit} " if menge else ""
-            st.success(f"{menge_text}{wb.namen[zutat]} hinzugefügt.")
-
-st.caption("Grundstock: " + (", ".join(wb.grundstock()) or "keine Zutaten ausgewählt"))
-
-vorrat = lade_vorrat(conn, person, wb)
-if vorrat.empty:
-    st.info("Der Vorrat ist leer. Füge oben deine erste Zutat hinzu.")
-else:
-    vorrat["status"] = [status(t) for t in vorrat["tage"]]
-    vorrat["aufgebraucht"] = False
-    bearbeitet = st.data_editor(
-        vorrat,
-        hide_index=True,
-        column_order=["status", "name", "menge", "einheit", "ablaufdatum", "geoeffnet_am", "aufgebraucht"],
-        disabled=["status", "name"],
-        column_config={
-            "status": "Status",
-            "name": "Zutat",
-            "menge": st.column_config.NumberColumn("Menge", min_value=0),
-            "einheit": st.column_config.SelectboxColumn(
-                "Einheit", options=EINHEITEN, required=True,
-                help="Bei anderer Einheit auch die Menge anpassen (z.B. 500 g = 0.5 kg).",
-            ),
-            "ablaufdatum": st.column_config.DateColumn("Ablaufdatum", format="DD.MM.YYYY"),
-            "geoeffnet_am": st.column_config.DateColumn("Geöffnet am", format="DD.MM.YYYY"),
-            "aufgebraucht": st.column_config.CheckboxColumn("Aufgebraucht"),
-        },
-        key="vorrat_editor",
-    )
-    st.caption("Wer ein Öffnungsdatum einträgt, bekommt ein angepasstes Ablaufdatum "
-               "(Haltbarkeit nach dem Öffnen aus der Wissensbasis).")
-    if st.button("Änderungen speichern"):
-        for eintrag_id, r in bearbeitet.iterrows():
-            leer = pd.notna(r.menge) and r.menge <= 0
-            if r.aufgebraucht or leer:
-                loesche(conn, person, int(eintrag_id))
+with st.expander('Zutat hinzufügen', icon=':material/add:', expanded=vorrat.empty):
+    zutat = st.selectbox('Zutat', wb.zutaten_zur_auswahl(), format_func=wb.namen.get,
+                         index=None, placeholder='Tippen zum Suchen', key='erfassen_zutat')
+    standard = wb.eigenschaft(zutat, 'einheit') if zutat else 'g'
+    with st.form('erfassen', clear_on_submit=True):
+        c1, c2 = st.columns(2)
+        menge = c1.number_input('Menge', min_value=0.0, value=None, step=1.0,
+                                help='Offen lassen, wenn du die Menge nicht kennst.')
+        einheit = c2.selectbox('Einheit', EINHEITEN, index=EINHEITEN.index(standard),
+                               key=f'erfassen_einheit_{zutat}')
+        ablauf = st.date_input('Ablaufdatum', value=None, format='DD.MM.YYYY',
+                               help='Ohne Datum verwenden wir die übliche Haltbarkeit als Schätzung.')
+        if st.form_submit_button('Hinzufügen', type='primary', use_container_width=True):
+            if zutat is None:
+                st.warning('Wähle zuerst eine Zutat aus.')
+            elif menge is not None and menge <= 0:
+                st.warning('Gib eine Menge grösser als 0 ein oder lasse sie offen.')
             else:
-                menge = float(r.menge) if pd.notna(r.menge) else None
-                aktualisiere(conn, person, int(eintrag_id), menge, r.ablaufdatum, r.geoeffnet_am,
-                             einheit=r.einheit)
-        st.rerun()
+                haltbar = wb.eigenschaft(zutat, 'haltbarTage')
+                if ablauf is None and haltbar is not None:
+                    ablauf = date.today() + timedelta(days=haltbar)
+                with ressourcen.datenbank() as conn:
+                    fuege_hinzu(conn, person, zutat, menge, einheit, ablauf)
+                st.session_state.meldung = f'{menge_text(menge, einheit)} {wb.namen[zutat]} hinzugefügt.'
+                st.rerun()
 
-    zeige_einkaufsideen(vorrat_als_liste(vorrat))
+st.subheader('Was du zu Hause hast')
+st.caption('Mehrere Packungen bleiben getrennt, damit ihre Ablaufdaten und Restmengen stimmen.')
+if vorrat.empty:
+    leer('Noch Platz im Kühlschrank.', 'Erfasse oben deine erste Zutat. Menge und Ablaufdatum können offen bleiben.')
+else:
+    suche = st.text_input('Im Vorrat suchen', placeholder='Zutat suchen …', key='vorrat_suche')
+    filter_ = st.pills('Anzeigen', ['Alles', 'Bald fällig', 'Abgelaufen', 'Ohne Datum'],
+                       default='Alles', key='vorrat_filter')
+    auswahl = vorrat[vorrat['name'].str.contains(suche, case=False, regex=False)]
+    if filter_ == 'Bald fällig':
+        auswahl = auswahl[auswahl.tage.notna() & (auswahl.tage >= 0) & (auswahl.tage <= 3)]
+    elif filter_ == 'Abgelaufen':
+        auswahl = auswahl[auswahl.tage.notna() & (auswahl.tage < 0)]
+    elif filter_ == 'Ohne Datum':
+        auswahl = auswahl[auswahl.tage.isna()]
+    st.caption(f'{len(auswahl)} von {len(vorrat)} Einträgen · nach Ablaufdatum sortiert')
+    if auswahl.empty:
+        leer('Hier ist alles erledigt.', 'Keine Einträge für diese Suche oder diesen Filter.')
+    for artikel in auswahl.itertuples():
+        eintrag_id = int(artikel.Index)
+        _, status = ablauf_status(artikel.tage)
+        with st.expander(f'{artikel.name} · {menge_text(artikel.menge, artikel.einheit)} · {status}'):
+            if pd.notna(artikel.tage) and artikel.tage < 0:
+                st.warning('Das eingetragene Ablaufdatum ist überschritten. Prüfe die Zutat vor dem Verwenden.')
+            with st.form(f'vorrat_bearbeiten_{eintrag_id}'):
+                c1, c2 = st.columns(2)
+                menge = c1.number_input('Menge', min_value=0.0,
+                                        value=None if pd.isna(artikel.menge) else float(artikel.menge),
+                                        key=f'menge_{eintrag_id}')
+                standard = artikel.einheit if artikel.einheit in EINHEITEN else 'g'
+                einheit = c2.selectbox('Einheit', EINHEITEN, index=EINHEITEN.index(standard),
+                                       key=f'einheit_{eintrag_id}')
+                st.caption('Bei anderer Einheit auch die Menge anpassen: 800 g entsprechen 0.8 kg.')
+                ablauf = st.date_input('Ablaufdatum', value=artikel.ablaufdatum, format='DD.MM.YYYY',
+                                       key=f'ablauf_{eintrag_id}')
+                geoeffnet = st.date_input('Geöffnet am', value=artikel.geoeffnet_am, format='DD.MM.YYYY',
+                                          key=f'geoeffnet_{eintrag_id}')
+                st.caption('Nach dem Öffnen kann die übliche Haltbarkeit das angezeigte Ablaufdatum verkürzen.')
+                if st.form_submit_button('Änderungen speichern', type='primary'):
+                    with ressourcen.datenbank() as conn:
+                        if menge is not None and menge == 0:
+                            loesche(conn, person, eintrag_id)
+                        else:
+                            aktualisiere(conn, person, eintrag_id, menge, ablauf, geoeffnet, einheit=einheit)
+                    st.session_state.meldung = f'{artikel.name} aktualisiert.'
+                    st.rerun()
+            if st.button('Aufgebraucht · entfernen', key=f'entfernen_{eintrag_id}', icon=':material/delete:'):
+                with ressourcen.datenbank() as conn:
+                    loesche(conn, person, eintrag_id)
+                st.session_state.meldung = f'{artikel.name} aus dem Vorrat entfernt.'
+                st.rerun()
+
+st.page_link('app/haushalt.py', label='Dauerhaft vorhandenen Grundstock anpassen', icon=':material/tune:')

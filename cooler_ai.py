@@ -1,56 +1,54 @@
-"""Cooler AI – Einstiegspunkt der App.
-
-Start (im Hauptordner):  streamlit run cooler_ai.py
-"""
-from pathlib import Path
-
+"""Cooler AI – Streamlit-App mit gemeinsamer Gestaltung und klarer Navigation."""
 import streamlit as st
 
 from app.datenbank import normalisiere_person
+from app.gestaltung import illustration, kopf, lade_design, markenleiste
+from app.ressourcen import beginne_seitenaufruf
 
-st.set_page_config(page_title="Cooler AI", page_icon="🥕", layout="wide")
-st.html("<style>" + (Path(__file__).parent / "app" / "sterne.css").read_text(encoding="utf-8") + "</style>")
+st.set_page_config(page_title='Cooler · Deine Küche im Blick', page_icon='🥕', layout='wide')
+lade_design()
+markenleiste()
 
 
 def anmelden():
-    """Name der Person in st.session_state.person, oder Anmeldeformular und Abbruch.
-
-    Kein Passwort: Der Name trennt nur die Daten (jede Person sieht ihren eigenen Vorrat),
-    er schützt sie nicht. Der Name steht zusätzlich in der URL (?person=yann),
-    damit man die Seite als Lesezeichen speichern kann und nicht jedes Mal neu eingibt.
-    """
-    if "person" not in st.session_state:
-        st.session_state.person = normalisiere_person(st.query_params.get("person", ""))
-
-    if not st.session_state.person:
-        st.title("Willkommen bei Cooler AI")
-        with st.form("anmelden"):
-            name = st.text_input("Dein Name", placeholder="z.B. Yann")
-            if st.form_submit_button("Weiter", type="primary") and normalisiere_person(name):
-                st.session_state.person = normalisiere_person(name)
-                st.session_state.zur_startseite = True
-                st.rerun()
-        st.caption("Jede Person sieht nur ihren eigenen Vorrat. Gib immer denselben Namen ein.")
+    # Profile sind keine Authentifizierung. Keine Profilnamen mehr in der URL.
+    st.query_params.clear()
+    if not st.session_state.get('person'):
+        with st.container(key='hero'):
+            links, rechts = st.columns([1.5, 1])
+            with links:
+                kopf('Deine Küche, gut genutzt', 'Gutes Essen beginnt mit dem, was da ist.',
+                     'Behalte deinen Vorrat im Blick und finde Gerichte, die dazu passen. '
+                     'Damit aus den Resten von heute dein Lieblingsessen wird.')
+            with rechts:
+                illustration()
+        st.subheader('Willkommen in deiner Küche')
+        st.caption('Projektvorschau · Profile ohne Passwort. Verwende hier keine vertraulichen Daten.')
+        with st.form('anmelden'):
+            name = st.text_input('Dein Profilname', placeholder='Wie sollen wir dich nennen?', max_chars=60)
+            if st.form_submit_button('Küche öffnen', type='primary'):
+                if normalisiere_person(name):
+                    st.session_state.person = normalisiere_person(name)
+                    st.rerun()
+                else:
+                    st.warning('Gib einen Profilnamen ein, um deinen Vorrat wiederzufinden.')
+        st.caption('Immer denselben Namen verwenden. Wer den Namen kennt, kann das Profil öffnen.')
         st.stop()
-
-    st.query_params["person"] = st.session_state.person
-    with st.sidebar:
-        st.write(f"Angemeldet als **{st.session_state.person}**")
-        if st.button("Abmelden"):
-            st.session_state.person = ""
-            st.query_params.clear()
-            st.rerun()
 
 
 anmelden()
-
-seiten = st.navigation([
-    st.Page("app/startseite.py", title="Startseite", icon="🏠", default=True),
-    st.Page("app/vorrat.py", title="Vorrat", icon="🥕"),
-    st.Page("app/vorschlaege.py", title="Menüvorschläge", icon="🍳"),
-    st.Page("app/haushalt.py", title="Grundstock", icon="🧂"),
-    st.Page("app/szenarien_seite.py", title="Testszenarien", icon="🧪"),
-])
-if st.session_state.pop("zur_startseite", False):
-    st.switch_page("app/startseite.py")
-seiten.run()
+beginne_seitenaufruf()
+seiten = [
+    st.Page('app/startseite.py', title='Heute', icon=':material/wb_sunny:', default=True),
+    st.Page('app/vorrat.py', title='Vorrat', icon=':material/kitchen:'),
+    st.Page('app/vorschlaege.py', title='Rezepte', icon=':material/restaurant:'),
+    st.Page('app/einkaufsliste.py', title='Einkauf', icon=':material/shopping_basket:'),
+    st.Page('app/haushalt.py', title='Einstellungen', icon=':material/tune:'),
+]
+if st.session_state.get('entwicklermodus'):
+    seiten.append(st.Page('app/szenarien_seite.py', title='Testszenarien', icon=':material/science:'))
+ausgewaehlt = st.navigation(seiten, position='hidden')
+with st.container(key='navigation', horizontal=True, gap='small'):
+    for seite in seiten:
+        st.page_link(seite, label=seite.title, icon=seite.icon, width='content')
+ausgewaehlt.run()

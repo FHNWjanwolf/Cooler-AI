@@ -1,5 +1,17 @@
 # Deployment
 
+## TEST-Versuch: überarbeitete App
+
+Mit ausdrücklichem Nutzerauftrag geht `feature/app-redesign-test` per geprüftem PR
+direkt auf `test`. `dev` und `main` behalten ihren bisherigen Stand. Diese
+Ausnahme ist keine Änderung des normalen Branch-Workflows. Keine Weitergabe nach
+`main` oder Rückübernahme nach `dev` ohne neuen Auftrag.
+
+Die zusätzliche Tabelle `einkaufsliste` wird automatisch angelegt. Bestehende
+Tabellen bleiben erhalten. Vor einer späteren Weitergabe die neuen Abläufe und
+die Grenzen der Profilanmeldung prüfen. Prüffälle und Messwerte:
+[`app-redesign-test.md`](app-redesign-test.md).
+
 ## Branches und Umgebungen
 
 ```
