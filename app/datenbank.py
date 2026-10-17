@@ -49,6 +49,14 @@ CREATE TABLE IF NOT EXISTS haushalt (
     person TEXT PRIMARY KEY,
     grundstock TEXT NOT NULL        -- JSON-Liste, auch [] ist eine bewusste Auswahl
 );
+CREATE TABLE IF NOT EXISTS einkaufsliste (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    person TEXT NOT NULL,
+    zutat TEXT NOT NULL,
+    menge REAL,
+    einheit TEXT,
+    UNIQUE(person, zutat)
+);
 """
 
 
@@ -183,6 +191,60 @@ def aktualisiere(conn, person, eintrag_id, menge, ablaufdatum, geoeffnet_am, ein
 def loesche(conn, person, eintrag_id):
     conn.execute("DELETE FROM vorratseintrag WHERE id = ? AND person = ?", (eintrag_id, person))
     conn.commit()
+
+
+# ---------------------------------------------------------------- Einkauf
+
+def lade_einkaufsliste(conn, person):
+    zeilen = conn.execute(
+        'SELECT id, zutat, menge, einheit FROM einkaufsliste WHERE person = ? ORDER BY id',
+        (person,),
+    ).fetchall()
+    return [dict(zip(('id', 'zutat', 'menge', 'einheit'), zeile)) for zeile in zeilen]
+
+
+def _pruefe_menge(menge):
+    if menge is not None and (not math.isfinite(menge) or menge <= 0):
+        raise ValueError('Die Menge muss grösser als 0 sein oder offen bleiben.')
+
+
+def merke_einkauf(conn, person, zutat, menge, einheit):
+    """Ein Vorschlag steht höchstens einmal auf der Liste; wiederholtes Klicken addiert nichts."""
+    _pruefe_menge(menge)
+    cursor = conn.execute(
+        'INSERT INTO einkaufsliste (person, zutat, menge, einheit) VALUES (?, ?, ?, ?) '
+        'ON CONFLICT(person, zutat) DO NOTHING',
+        (person, zutat, menge, einheit),
+    )
+    conn.commit()
+    return cursor.rowcount == 1
+
+
+def entferne_einkauf(conn, person, eintrag_id):
+    conn.execute('DELETE FROM einkaufsliste WHERE id = ? AND person = ?', (eintrag_id, person))
+    conn.commit()
+
+
+def kaufe_ein(conn, person, eintrag_id, menge, einheit, ablaufdatum):
+    """Gekauften Artikel atomar in den Vorrat verschieben. Doppelklick erzeugt keinen Doppeleinkauf."""
+    _pruefe_menge(menge)
+    if einheit not in ('g', 'kg', 'ml', 'l', 'Stück', 'Stk'):
+        raise ValueError('Wähle eine gültige Einheit.')
+    try:
+        zeile = conn.execute('SELECT zutat FROM einkaufsliste WHERE id = ? AND person = ?',
+                             (eintrag_id, person)).fetchone()
+        if zeile is None:
+            raise ValueError('Dieser Einkauf ist nicht mehr auf deiner Liste. Bitte lade die Seite neu.')
+        cursor = conn.execute('DELETE FROM einkaufsliste WHERE id = ? AND person = ?',
+                              (eintrag_id, person))
+        if cursor.rowcount != 1:
+            raise ValueError('Dieser Einkauf wurde bereits übernommen.')
+        conn.execute('INSERT INTO vorratseintrag (person, zutat, menge, einheit, ablaufdatum) '
+                     'VALUES (?, ?, ?, ?, ?)', (person, zeile[0], menge, einheit, _iso(ablaufdatum)))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
 
 
 # ---------------------------------------------------------------- Bewertungen

@@ -4,10 +4,13 @@ Ablauf: Vorrat laden -> Wissensbasis filtert geeignete Rezepte -> Ranking sortie
 -> Anzeige mit Begründung -> Bewertung wird mit Vorrat-Snapshot gespeichert (Trainingsdaten).
 Mit "Gekocht" werden die verbrauchten Mengen vom Vorrat abgezogen.
 """
+from html import escape
+
 import streamlit as st
 
 from app.datenbank import koche, vorrat_als_liste
 from app import ressourcen
+from app.gestaltung import leer
 from app.verbrauch import verbrauchsplan
 from ml.ranking import sortiere
 from wissensbasis.eignung import finde_kandidaten, lade_rezepte
@@ -26,7 +29,7 @@ def zutaten_text(rezept):
     return ", ".join(teile)
 
 
-@st.dialog("Guten Appetit!")
+@st.dialog("Kochen abschliessen", width="large")
 def gekocht_dialog(kandidat, vorrat):
     """Verbrauch prüfen, Bewertung speichern und Restmengen behalten."""
     wb = ressourcen.wissensbasis()
@@ -35,7 +38,10 @@ def gekocht_dialog(kandidat, vorrat):
     person = st.session_state.person
     rezept = kandidat["rezept"]
     st.markdown(f"**{rezept['titel']}**")
-    st.caption("Rezeptmengen: " + zutaten_text(rezept))
+    st.caption(f"Für {rezept['portionen']} Portionen · {rezept['kochzeit_min']} Minuten")
+    with st.expander("Rezeptmengen ansehen"):
+        st.write(zutaten_text(rezept))
+    st.subheader("1. Verbrauch prüfen")
 
     verbrauch = {}
     plan = verbrauchsplan(rezept, vorrat, wb)
@@ -79,15 +85,17 @@ def gekocht_dialog(kandidat, vorrat):
         st.write("Das Rezept braucht nur Zutaten aus dem Grundstock.")
 
     st.caption("Bei Ersatzprodukten ist die Rezeptmenge ein Vorschlag; prüfe den tatsächlichen Verbrauch.")
-    st.write("Wie hat es geschmeckt?")
+    st.subheader("2. Wie hat es geschmeckt?")
+    st.caption("Bewerte das Gericht nach dem Kochen. Deine Rückmeldung wird mit dem Verbrauch gespeichert.")
     sterne = st.feedback("stars", key=f"sterne_{person}_{rezept['id']}")
     if sterne is not None:
         st.caption(f"{sterne + 1} von 5 Sternen")
     if st.button("Speichern", type="primary", disabled=sterne is None or fehlmenge):
         try:
             # Der Dialog kann länger offen sein als die Turso-Verbindung gültig ist.
-            koche(ressourcen.verbindung(), person, rezept["id"], sterne + 1, vorrat, verbrauch,
-                  grundstock=kandidat.get("grundstock", sorted(wb.grundstock_ids)))
+            with ressourcen.datenbank() as conn:
+                koche(conn, person, rezept["id"], sterne + 1, vorrat, verbrauch,
+                      grundstock=kandidat.get("grundstock", sorted(wb.grundstock_ids)))
         except ValueError as fehler:
             st.error(str(fehler))
             return
@@ -103,61 +111,91 @@ def gekocht_dialog(kandidat, vorrat):
         st.rerun()
 
 
-def zeige_rezept(kandidat, vorrat):
+def zeige_rezept(kandidat, vorrat, nummer=None):
     wb = ressourcen.wissensbasis()
     person = st.session_state.person
-    rezept = kandidat["rezept"]
+    rezept = kandidat['rezept']
     with st.container(border=True):
-        st.subheader(rezept["titel"])
+        if nummer is not None:
+            st.html(f'<p class="nummer">Deine Küchenidee / {nummer:02}</p>')
+        st.subheader(rezept['titel'])
         info = f"{rezept['kochzeit_min']} Min. · {rezept['portionen']} Portionen"
-        if kandidat["vegetarisch"]:
-            info += " · vegetarisch"
-        st.caption(info)
-
-        for b in kandidat["begruendungen"]:
-            st.markdown(f"- {b}")
-        if kandidat["fehlend_optional"]:
-            st.caption("Optional, aber nicht im Vorrat: " + ", ".join(kandidat["fehlend_optional"]))
-        st.caption("Zutaten: " + zutaten_text(rezept))
-
-        if st.button("🍳 Gekocht", key=f"gekocht_{rezept['id']}",
-                     help="Bewertet das Rezept und zieht die verbrauchten Mengen vom Vorrat ab."):
-            # Bei jedem neuen Öffnen wieder mit den aktuellen Rezeptmengen
-            # beginnen, auch wenn ein vorheriger Dialog abgebrochen wurde.
+        if kandidat['vegetarisch']:
+            info += ' · vegetarisch'
+        st.html(f'<p class="rezept-meta">{escape(info)}</p>')
+        grund = kandidat['begruendungen'][0] if kandidat['begruendungen'] else 'Passt zu deinem Vorrat und Grundstock.'
+        st.html(f'<p class="rezept-grund">{escape(grund)}</p>')
+        with st.expander('Zutaten & Details', icon=':material/menu_book:'):
+            for e in rezept['zutaten']:
+                menge = f"{e['menge']:g} {e['einheit']} " if e['menge'] is not None else ''
+                optional = ' · optional' if not e['pflicht'] else ''
+                st.write(f"{menge}{wb.namen[e['zutat']]}{optional}")
+            if kandidat['fehlend_optional']:
+                st.caption('Optional ergänzen: ' + ', '.join(kandidat['fehlend_optional']))
+            if kandidat['begruendungen']:
+                st.markdown('**Warum dieses Gericht?**')
+                for begruendung in kandidat['begruendungen']:
+                    st.write(begruendung)
+            schritte = rezept.get('zubereitung')
+            if schritte:
+                st.markdown('**Zubereitung**')
+                if isinstance(schritte, list):
+                    for index, schritt in enumerate(schritte, 1):
+                        st.write(f'{index}. {schritt}')
+                else:
+                    st.write(schritte)
+            else:
+                st.caption('Eine Schritt-für-Schritt-Zubereitung ist für dieses Gericht noch nicht hinterlegt.')
+            st.caption('Zutaten sind vorhanden oder ersetzbar. Die benötigten Mengen prüfst du vor dem Speichern.')
+        if st.button('Gekocht', icon=':material/check:', key=f"gekocht_{rezept['id']}",
+                     use_container_width=True):
             for key in list(st.session_state):
                 if key.startswith(f"verbrauch_{rezept['id']}_") or key == f"sterne_{person}_{rezept['id']}":
                     del st.session_state[key]
             gekocht_dialog(kandidat, vorrat)
 
 
-def zeige_vorschlaege(vorrat_df):
-    """Menüvorschläge auf Startseite und Rezeptseite identisch anzeigen."""
+def zeige_vorschlaege(vorrat_df, kompakt=False):
+    """Heute zeigt drei Ideen; die Rezeptseite bietet Suche, Filter und weitere Treffer."""
     wb = ressourcen.wissensbasis()
-    if vorrat_df.empty:
-        st.info("Erfasse zuerst deinen Vorrat, dann erscheinen hier passende Menüs.")
     vorrat = vorrat_als_liste(vorrat_df)
-    c1, c2 = st.columns(2)
-    nur_vegetarisch = c1.toggle("Nur vegetarisch")
-    max_kochzeit = c2.slider("Maximale Kochzeit (Minuten)", 10, 90, 90, step=5)
-    kandidaten = [
-        k for k in finde_kandidaten(lade_rezepte(), vorrat, wb)
-        if (k["vegetarisch"] or not nur_vegetarisch) and k["rezept"]["kochzeit_min"] <= max_kochzeit
-    ]
+    nur_vegetarisch, max_kochzeit, suche = False, 90, ''
+    if not kompakt:
+        with st.container(border=True):
+            suche = st.text_input('Rezept suchen', placeholder='Zum Beispiel Pasta oder Suppe', key='rezept_suche')
+            c1, c2 = st.columns(2)
+            nur_vegetarisch = c1.toggle('Nur vegetarisch', key='rezept_vegetarisch')
+            max_kochzeit = c2.select_slider('Maximale Kochzeit', options=[10, 15, 20, 30, 45, 60, 90],
+                                           value=90, format_func=lambda x: f'{x} Min.', key='rezept_zeit')
+    kandidaten = [k for k in finde_kandidaten(lade_rezepte(), vorrat, wb)
+                  if (k['vegetarisch'] or not nur_vegetarisch)
+                  and k['rezept']['kochzeit_min'] <= max_kochzeit
+                  and suche.casefold() in k['rezept']['titel'].casefold()]
     modell = ressourcen.ml_modell()
     sortiert = sortiere(kandidaten, modell)
-    if modell is None:
-        st.caption("Sortierung nach Resteverwertung. Mit genügend Kochbewertungen lernt die App eure Vorlieben.")
-    else:
-        st.caption("Sortierung nach euren Vorlieben und bisherigen Bewertungen.")
     if not sortiert:
-        st.info("Mit deinem Vorrat passt noch kein Menü. Schau dir die Einkaufsideen an oder passe die Filter an.")
+        if vorrat_df.empty:
+            leer('Deine nächsten Lieblingsgerichte warten schon.',
+                 'Erfasse zuerst ein paar Lebensmittel in deinem Vorrat.')
+        else:
+            leer('Hier passt gerade noch kein Gericht.',
+                 'Ergänze deinen Vorrat oder lockere die Filter. Auf Heute findest du auch Einkaufsideen.')
         return
-    for kandidat in sortiert[:3]:
-        zeige_rezept(kandidat, vorrat)
-    rest = sortiert[3:]
-    if rest and st.toggle(f"{len(rest)} weitere geeignete Rezepte anzeigen"):
-        for kandidat in rest:
-            zeige_rezept(kandidat, vorrat)
+    if not kompakt:
+        st.caption(f'{len(sortiert)} passende Gerichte · ' +
+                   ('Nach bisherigen Kochbewertungen sortiert' if modell is not None else 'Nach Resteverwertung sortiert'))
+    anzahl = 3 if kompakt else len(sortiert)
+    if not kompakt and len(sortiert) > 9:
+        if not st.toggle(f'Alle {len(sortiert)} Gerichte anzeigen'):
+            anzahl = 9
+    with st.container(key='rezeptliste'):
+        for start in range(0, min(anzahl, len(sortiert)), 3):
+            spalten = st.columns(3, gap='medium')
+            for i, kandidat in enumerate(sortiert[start:min(start + 3, anzahl)]):
+                with spalten[i]:
+                    zeige_rezept(kandidat, vorrat, start + i + 1)
+    if kompakt:
+        st.page_link('app/vorschlaege.py', label='Alle passenden Rezepte & Filter', icon=':material/arrow_forward:')
 
 
 def zeige_meldung():

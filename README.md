@@ -33,6 +33,14 @@ Alle Befehle im Hauptordner ausführen.
 
 Einstieg in die Doku: [`docs/architektur.md`](docs/architektur.md), dann [`docs/wissensbasis.md`](docs/wissensbasis.md) und [`docs/fahrplan.md`](docs/fahrplan.md).
 
+## Neue Oberfläche auf TEST
+
+Die App-Überarbeitung wird zunächst auf `test` erprobt: Heute, Vorrat, Rezepte,
+Einkauf und Einstellungen. Einkaufsideen werden vorgemerkt und erst nach dem
+Kauf in den Vorrat übernommen. Grundstock und optionale Testszenarien stehen unter
+Einstellungen. Profilnamen sind kein Passwortschutz; die App ist eine Projektvorschau.
+Gestaltung, Datenzugriffe und Prüfergebnisse: [`docs/app-redesign-test.md`](docs/app-redesign-test.md).
+
 ## Zusammenarbeit
 
 - Aufgaben als GitHub Issues erfassen.

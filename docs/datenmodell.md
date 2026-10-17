@@ -101,3 +101,12 @@ erDiagram
 `bewertung.grundstock_snapshot` hält den damaligen Grundstock für Training und Evaluation fest. Bestehende Datenbanken erhalten die Tabelle `haushalt` und die optionale Spalte automatisch; ältere Bewertungen ohne Snapshot werden in App und CLI mit der bisherigen Standardliste ausgewertet.
 
 Testszenarien liegen separat als JSON-Dateien. Sie enthalten konkrete Zutaten mit Menge, Einheit, Ablauf- und gegebenenfalls Öffnungsdatum sowie einen festen Stichtag, einen expliziten Grundstock und die erwarteten Rezept-IDs. Die Vorschau schreibt weder in Vorrat noch Bewertungen. Automatische Datenbanktests laden diese Szenarien nur in temporäre Datenbanken.
+
+## Einkaufsliste (TEST-Oberfläche)
+
+`einkaufsliste` speichert `id` (nicht wiederverwendeter Primärschlüssel), `person`,
+`zutat`, `menge` und `einheit`. Pro Person und Zutat gibt es höchstens einen
+Listeneintrag. Er ist eine Planung und zählt noch nicht als Vorrat. «Gekauft»
+übernimmt die geprüften Werte in `vorratseintrag` und entfernt den Listeneintrag
+in einer Transaktion. Ungültige oder bereits erledigte Einkäufe erzeugen keinen
+zusätzlichen Vorrat. Die neue Tabelle wird additiv eingerichtet.

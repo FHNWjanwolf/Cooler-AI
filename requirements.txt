@@ -1,5 +1,6 @@
 # Getesteter Runtime-Stand. Die Änderung löst auch einen Cloud-Neubau aus,
 # damit nach dem Release keine alten Python-Module im Prozess verbleiben.
+# TEST-Oberflächenupdate: frischer Prozess für Navigation, Ressourcen und Einkaufsliste.
 streamlit==1.66.0
 pandas>=2.0
 # Getestete ML-Version; Abhängigkeitsänderung startet den Cloud-Prozess neu.
